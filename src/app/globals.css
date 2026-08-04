@@ -39,6 +39,10 @@
   --color-system-info: #7ab6d9;
 }
 
+@theme inline {
+  --font-sans: var(--font-pretendard);
+}
+
 :root {
   --font-size-display-large: 48px;
   --font-size-display-medium: 32px;
@@ -68,4 +72,9 @@
     --font-size-heading-h2: 24px;
     --font-size-heading-h3: 20px;
   }
+}
+
+body {
+  background: var(--color-neutral-0);
+  color: var(--color-neutral-800);
 }
