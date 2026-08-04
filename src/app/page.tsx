@@ -1,3 +1,3 @@
-import { HomeView } from '@/views/home';
+import { AuthEntryView } from '@/views/auth-entry';
 
-export default HomeView;
+export default AuthEntryView;
