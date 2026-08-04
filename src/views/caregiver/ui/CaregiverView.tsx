@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -123,6 +123,7 @@ const CaregiverView = ({ screen }: CaregiverViewProps) => {
       )}
       {isMoreOpen && (
         <MoreSheet
+          medicationId={selectedMedicationId}
           onClose={() => setIsMoreOpen(false)}
           onDelete={() => {
             setIsMoreOpen(false);
@@ -283,6 +284,7 @@ const DrugSelectionDetailDialog = ({
 const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const medicationId = searchParams.get('id');
   const [name, setName] = useState(searchParams.get('name') ?? '');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -294,19 +296,34 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
   const { data: medications } = useGetMedications(patientId);
-  const { postMedication } = useMedicationMutations(patientId);
+  const editMedication = medications?.find((medication) => medication.id === medicationId);
+  const { patchMedication, postMedication } = useMedicationMutations(patientId);
 
-  const registerMedication = (medicationName: string) => {
+  const saveMedication = (medicationName: string) => {
+    const request = {
+      name: medicationName,
+      dosage,
+      instructions,
+      times: [time],
+      daysOfWeek: editMedication?.schedules.map((schedule) => schedule.dayOfWeek) ?? [
+        0, 1, 2, 3, 4, 5, 6,
+      ],
+    };
+
+    if (isEdit && medicationId) {
+      patchMedication.mutate(
+        { id: medicationId, request },
+        { onSuccess: () => router.replace('/caregiver') },
+      );
+      return;
+    }
+
     if (!patientId) return;
 
     postMedication.mutate(
       {
         patientId,
-        name: medicationName,
-        dosage,
-        instructions,
-        times: [time],
-        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        ...request,
         startDate: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()),
       },
       { onSuccess: () => router.replace('/caregiver') },
@@ -337,7 +354,7 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
         return;
       }
 
-      registerMedication(drug.name);
+      saveMedication(drug.name);
     } catch {
       setInteractionError('약물 상호작용을 확인하지 못했습니다. 다시 시도해주세요.');
     } finally {
@@ -348,6 +365,12 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const submit = async () => {
     if (!patientId || !name || !dosage || !/^\d{2}:\d{2}$/.test(time)) return;
     setInteractionError(null);
+
+    if (isEdit && medicationId) {
+      saveMedication(name);
+      return;
+    }
+
     setIsCheckingInteraction(true);
 
     try {
@@ -364,6 +387,15 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
       setIsCheckingInteraction(false);
     }
   };
+
+  useEffect(() => {
+    if (!isEdit || !editMedication) return;
+
+    setName(editMedication.name);
+    setDosage(editMedication.dosage);
+    setInstructions(editMedication.instructions ?? '');
+    setTime(editMedication.schedules[0]?.time ?? '');
+  }, [editMedication, isEdit]);
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
       <div className="mx-auto max-w-[480px] px-5 pt-[72px]">
@@ -420,7 +452,7 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
           warning={interactionWarning}
           onCancel={() => setInteractionWarning(null)}
           onConfirm={() => {
-            registerMedication(interactionWarning.drug.name);
+            saveMedication(interactionWarning.drug.name);
             setInteractionWarning(null);
           }}
         />
@@ -594,11 +626,19 @@ const CaregiverSettings = () => {
   );
 };
 
-const MoreSheet = ({ onClose, onDelete }: { onClose: () => void; onDelete: () => void }) => (
+const MoreSheet = ({
+  medicationId,
+  onClose,
+  onDelete,
+}: {
+  medicationId: string;
+  onClose: () => void;
+  onDelete: () => void;
+}) => (
   <div className="bg-neutral-1000/45 fixed inset-0 z-20" role="dialog">
     <section className="bg-neutral-0 absolute right-0 bottom-0 left-0 mx-auto max-w-[480px] rounded-t-2xl pb-5">
       <h2 className="py-5 text-center text-xl font-semibold">더보기</h2>
-      <Link className="block px-8 py-3" href="/caregiver/medications/edit">
+      <Link className="block px-8 py-3" href={`/caregiver/medications/edit?id=${medicationId}`}>
         내용 수정
       </Link>
       <button

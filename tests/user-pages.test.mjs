@@ -131,7 +131,7 @@ test('보호자 약 등록은 요일을 0부터 6까지의 정수 배열로 전�
     readFile(new URL('../src/entities/medication/api/medication.ts', import.meta.url), 'utf8'),
   ]);
 
-  assert.match(caregiver, /daysOfWeek: \[0, 1, 2, 3, 4, 5, 6\]/);
+  assert.match(caregiver, /\?\?\s*\[\s*0, 1, 2, 3, 4, 5, 6,\s*\]/);
   assert.match(medicationApi, /daysOfWeek: number\[\];/);
 });
 
@@ -172,6 +172,21 @@ test('보호자 월간 리포트의 요약 아이콘은 정사각형으로 고�
     assert.match(source, /className="size-6 shrink-0"\s+src="\/report-rate\.svg"/);
     assert.match(source, /className="size-6 shrink-0"\s+src="\/report-count\.svg"/);
   }
+});
+
+test('보호자 약 수정은 기존 값을 채우고 PATCH 요청을 보낸다', async () => {
+  const source = await readFile(
+    new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /href={`\/caregiver\/medications\/edit\?id=\$\{medicationId\}`}/);
+  assert.match(
+    source,
+    /const editMedication = medications\?\.find\(\(medication\) => medication\.id === medicationId\)/,
+  );
+  assert.match(source, /patchMedication\.mutate\(\s*\{\s*id: medicationId,/);
+  assert.match(source, /setName\(editMedication\.name\)/);
 });
 
 test('Figma 기준 보호자 내비게이션과 리포트 표현을 제공한다', async () => {

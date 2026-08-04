@@ -5,6 +5,12 @@ export interface MedicationResponseType {
   id: string;
   instructions: string | null;
   name: string;
+  schedules: MedicationScheduleResponseType[];
+}
+
+export interface MedicationScheduleResponseType {
+  dayOfWeek: number;
+  time: string;
 }
 
 export interface MedicationReqType {
