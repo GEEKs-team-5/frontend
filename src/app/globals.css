@@ -1,1 +1,71 @@
 @import 'tailwindcss';
+
+@theme {
+  --color-primary-50: #edf8fe;
+  --color-primary-100: #ceebff;
+  --color-primary-200: #9cd8ff;
+  --color-primary-300: #65bcee;
+  --color-primary-400: #3ea5e3;
+  --color-primary-500: #1c8dd3;
+  --color-primary-600: #1273ae;
+  --color-primary-700: #0b588b;
+  --color-primary-800: #063f65;
+  --color-primary-900: #012542;
+  --color-secondary-50: #fff0f5;
+  --color-secondary-100: #ffd6e5;
+  --color-secondary-200: #ffbcd5;
+  --color-secondary-300: #ff9bbf;
+  --color-secondary-400: #ff78a9;
+  --color-secondary-500: #f55490;
+  --color-secondary-600: #d93878;
+  --color-secondary-700: #b31f5e;
+  --color-secondary-800: #8c0f45;
+  --color-secondary-900: #5c002b;
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8f9fa;
+  --color-neutral-100: #f1f3f5;
+  --color-neutral-200: #e9ecef;
+  --color-neutral-300: #dee2e6;
+  --color-neutral-400: #ced4da;
+  --color-neutral-500: #adb5bd;
+  --color-neutral-600: #868e96;
+  --color-neutral-700: #495057;
+  --color-neutral-800: #343a40;
+  --color-neutral-900: #212529;
+  --color-neutral-1000: #000000;
+  --color-system-success: #2e7d52;
+  --color-system-warning: #f59e0b;
+  --color-system-error: #dc2626;
+  --color-system-info: #7ab6d9;
+}
+
+:root {
+  --font-size-display-large: 48px;
+  --font-size-display-medium: 32px;
+  --font-size-display-small: 24px;
+  --font-size-heading-h1: 24px;
+  --font-size-heading-h2: 20px;
+  --font-size-heading-h3: 18px;
+  --font-size-heading-h4: 16px;
+  --font-size-heading-h5: 14px;
+  --font-size-body-large: 18px;
+  --font-size-body-medium: 16px;
+  --font-size-body-small: 14px;
+  --font-size-body-xsmall: 12px;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --line-height-display: 1.2;
+  --line-height-heading: 1.2;
+  --line-height-body: 1.4;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --font-size-display-large: 64px;
+    --font-size-display-medium: 48px;
+    --font-size-display-small: 36px;
+    --font-size-heading-h1: 32px;
+    --font-size-heading-h2: 24px;
+    --font-size-heading-h3: 20px;
+  }
+}
