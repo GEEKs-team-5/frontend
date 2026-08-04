@@ -20,13 +20,13 @@ const flushQueue = (token: string | null, error?: unknown) => {
 };
 
 export const axiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 10000,
 });
 
 // 리프레시 요청은 인터셉터를 타지 않아야 401 무한 루프가 안 생김
 const refreshAxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 10000,
 });
 
@@ -46,7 +46,11 @@ axiosInstance.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      originalRequest.url === authUrl.postLogin()
+    ) {
       return Promise.reject(error);
     }
 

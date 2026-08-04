@@ -1,8 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 import Image from 'next/image';
+
+import {
+  getSignupValidationMessage,
+  LoginSchema,
+  RegisterSchema,
+  usePostAcceptInvitation,
+  usePostCareInvitation,
+  usePostLogin,
+  usePostRegister,
+} from '@/features/auth';
 
 import { getNextScreen } from '../model/screen.mjs';
 
@@ -13,9 +23,12 @@ type ScreenType =
   | 'signup-email'
   | 'signup-password'
   | 'signup-role'
-  | 'signup-guardian'
+  | 'signup-patient'
   | 'signup-profile'
   | 'signup-invite';
+
+type RoleType = '' | 'guardian' | 'patient';
+type GenderType = '' | 'female' | 'male';
 
 const AuthEntryView = () => {
   const [screen, setScreen] = useState<ScreenType>('splash');
@@ -23,11 +36,21 @@ const AuthEntryView = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [passwordConfirmation, setPasswordConfirmation] = useState<string>('');
-  const [role, setRole] = useState<string>('');
+  const [role, setRole] = useState<RoleType>('');
+  const [isRoleOptionsOpen, setIsRoleOptionsOpen] = useState<boolean>(false);
   const [age, setAge] = useState<string>('');
-  const [gender, setGender] = useState<string>('');
+  const [gender, setGender] = useState<GenderType>('');
   const [inviteCode, setInviteCode] = useState<string>('');
+  const [invitationCode, setInvitationCode] = useState<string>('');
   const [isCodeCopied, setIsCodeCopied] = useState<boolean>(false);
+  const [signupMessage, setSignupMessage] = useState<string>('');
+  const [signInEmail, setSignInEmail] = useState<string>('');
+  const [signInPassword, setSignInPassword] = useState<string>('');
+  const [signInMessage, setSignInMessage] = useState<string>('');
+  const postLoginMutation = usePostLogin();
+  const postRegisterMutation = usePostRegister();
+  const postCareInvitationMutation = usePostCareInvitation();
+  const postAcceptInvitationMutation = usePostAcceptInvitation();
 
   const handleOpenSignIn = () => setScreen(getNextScreen('start', 'open-signin'));
 
@@ -35,23 +58,117 @@ const AuthEntryView = () => {
 
   const handleGoBack = () => setScreen(getNextScreen(screen, 'go-back'));
 
-  const handleSignUpNext = () => {
-    if (screen === 'signup-email' && email) setScreen(getNextScreen(screen, 'next'));
-    if (screen === 'signup-password' && password && password === passwordConfirmation)
+  const handleSignUpNext = async () => {
+    setSignupMessage('');
+
+    const signupStep = screen.replace('signup-', '') as 'email' | 'password' | 'profile' | 'role';
+    const validationMessage = getSignupValidationMessage(signupStep, {
+      age,
+      email,
+      gender,
+      password,
+      passwordConfirmation,
+      role,
+    });
+
+    if (validationMessage) {
+      setSignupMessage(validationMessage);
+      return;
+    }
+
+    if (screen === 'signup-email') {
       setScreen(getNextScreen(screen, 'next'));
-    if (screen === 'signup-role' && role)
+      return;
+    }
+    if (screen === 'signup-password') {
+      setScreen(getNextScreen(screen, 'next'));
+      return;
+    }
+    if (screen === 'signup-role') {
       setScreen(getNextScreen(screen, role === 'guardian' ? 'select-guardian' : 'select-patient'));
-    if (screen === 'signup-profile' && age && gender) setScreen(getNextScreen(screen, 'next'));
+      return;
+    }
+    if (screen !== 'signup-profile') return;
+
+    const registerResult = RegisterSchema.safeParse({
+      age,
+      email,
+      gender: gender === 'female' ? 'FEMALE' : gender === 'male' ? 'MALE' : undefined,
+      password,
+      role: role === 'patient' ? 'PATIENT' : role === 'guardian' ? 'CAREGIVER' : undefined,
+    });
+
+    if (!registerResult.success) {
+      setSignupMessage(registerResult.error.issues[0]?.message ?? '입력값을 확인해주세요.');
+      return;
+    }
+
+    try {
+      await postRegisterMutation.mutateAsync(registerResult.data);
+
+      if (registerResult.data.role === 'PATIENT') {
+        const invitation = await postCareInvitationMutation.mutateAsync();
+        setInvitationCode(invitation.code);
+        setScreen(getNextScreen(screen, 'register-patient'));
+        return;
+      }
+
+      setScreen(getNextScreen(screen, 'register-guardian'));
+    } catch {
+      setSignupMessage('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
   };
 
   const handleCopyInviteCode = async () => {
     if (!navigator.clipboard) return;
 
-    await navigator.clipboard.writeText('123268');
-    setIsCodeCopied(true);
+    try {
+      await navigator.clipboard.writeText(invitationCode);
+      setIsCodeCopied(true);
+    } catch {
+      setSignupMessage('초대 코드를 복사하지 못했습니다.');
+    }
+  };
+
+  const handleAcceptInvitation = async () => {
+    const validationMessage = getSignupValidationMessage('invite', { inviteCode });
+    if (validationMessage) {
+      setSignupMessage(validationMessage);
+      return;
+    }
+
+    try {
+      await postAcceptInvitationMutation.mutateAsync(inviteCode.trim());
+      setSignupMessage('보호자 연결이 완료되었습니다.');
+    } catch {
+      setSignupMessage('초대 코드를 확인해주세요.');
+    }
+  };
+
+  const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSignInMessage('');
+
+    const loginResult = LoginSchema.safeParse({ email: signInEmail, password: signInPassword });
+    if (!loginResult.success) {
+      setSignInMessage(loginResult.error.issues[0]?.message ?? '입력값을 확인해주세요.');
+      return;
+    }
+
+    try {
+      await postLoginMutation.mutateAsync(loginResult.data);
+      setSignInMessage('로그인되었습니다.');
+    } catch {
+      setSignInMessage('이메일 또는 비밀번호를 확인해주세요.');
+    }
   };
 
   const handleTogglePasswordVisibility = () => setIsPasswordVisible((visible) => !visible);
+
+  const handleSelectRole = (selectedRole: Exclude<RoleType, ''>) => {
+    setRole(selectedRole);
+    setIsRoleOptionsOpen(false);
+  };
 
   useEffect(() => {
     if (screen !== 'splash') return;
@@ -110,11 +227,11 @@ const AuthEntryView = () => {
           ? '비밀번호를\n입력해주세요'
           : screen === 'signup-role'
             ? '사용자 유형을\n알려주세요'
-            : screen === 'signup-guardian'
-              ? '초대 코드를 복용자에게\n공유해주세요.'
+            : screen === 'signup-patient'
+              ? '초대 코드를 보호자에게\n공유해주세요.'
               : screen === 'signup-profile'
                 ? '나이와 성별을\n알려주세요'
-                : '보호자가 보내준\n초대 코드를 적어주세요';
+                : '복용자가 보내준\n초대 코드를 적어주세요';
 
     return (
       <main className="bg-neutral-0 flex min-h-dvh flex-col px-5 pt-[52px]">
@@ -177,27 +294,33 @@ const AuthEntryView = () => {
                   className="flex h-12 w-full items-center justify-between rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
                   type="button"
                   aria-label="사용자 유형"
+                  aria-expanded={isRoleOptionsOpen}
+                  onClick={() => setIsRoleOptionsOpen((isOpen) => !isOpen)}
                 >
                   {role === 'guardian' ? '보호자' : role === 'patient' ? '복용자' : '선택해주세요'}
-                  <span aria-hidden="true">⌃</span>
+                  <span aria-hidden="true">{isRoleOptionsOpen ? '⌃' : '⌄'}</span>
                 </button>
-                <button
-                  className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
-                  type="button"
-                  onClick={() => setRole('guardian')}
-                >
-                  보호자
-                </button>
-                <button
-                  className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
-                  type="button"
-                  onClick={() => setRole('patient')}
-                >
-                  복용자
-                </button>
+                {isRoleOptionsOpen && (
+                  <>
+                    <button
+                      className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
+                      type="button"
+                      onClick={() => handleSelectRole('guardian')}
+                    >
+                      보호자
+                    </button>
+                    <button
+                      className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
+                      type="button"
+                      onClick={() => handleSelectRole('patient')}
+                    >
+                      복용자
+                    </button>
+                  </>
+                )}
               </div>
             )}
-            {screen === 'signup-guardian' && (
+            {screen === 'signup-patient' && (
               <>
                 <button
                   className="flex h-[58px] w-full items-center justify-center gap-[6px] rounded-md border border-dashed border-neutral-500 text-[32px] font-semibold text-neutral-800"
@@ -205,7 +328,7 @@ const AuthEntryView = () => {
                   onClick={() => void handleCopyInviteCode()}
                 >
                   <Image src="/auth-copy.svg" alt="" width={16} height={19} />
-                  123268
+                  {invitationCode}
                 </button>
                 <p className="text-sm text-neutral-500">
                   {isCodeCopied
@@ -228,7 +351,7 @@ const AuthEntryView = () => {
                   className="bg-neutral-0 h-12 w-full rounded-md border border-neutral-300 px-4 text-base text-neutral-800 outline-none"
                   value={gender}
                   aria-label="성별"
-                  onChange={(event) => setGender(event.target.value)}
+                  onChange={(event) => setGender(event.target.value as GenderType)}
                 >
                   <option value="">성별을 선택해주세요</option>
                   <option value="female">여성</option>
@@ -246,14 +369,20 @@ const AuthEntryView = () => {
               />
             )}
           </div>
+          {signupMessage && <p className="text-sm text-neutral-500">{signupMessage}</p>}
           <button
             className="bg-primary-300 text-neutral-0 mt-auto mb-[28px] h-12 rounded-md text-base font-semibold"
             type="button"
             onClick={
-              ['signup-guardian', 'signup-invite'].includes(screen) ? undefined : handleSignUpNext
+              screen === 'signup-invite'
+                ? () => void handleAcceptInvitation()
+                : screen === 'signup-patient'
+                  ? undefined
+                  : () => void handleSignUpNext()
             }
+            disabled={postRegisterMutation.isPending || postAcceptInvitationMutation.isPending}
           >
-            {['signup-guardian', 'signup-invite'].includes(screen) ? '회원가입' : '다음 >'}
+            {['signup-patient', 'signup-invite'].includes(screen) ? '회원가입' : '다음 >'}
           </button>
         </section>
       </main>
@@ -279,19 +408,23 @@ const AuthEntryView = () => {
           <br />
           오신 것을 환영해요!
         </h1>
-        <form className="mt-8 flex flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-8 flex flex-col gap-4" onSubmit={(event) => void handleSignIn(event)}>
           <input
             className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 px-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
             type="email"
+            value={signInEmail}
             placeholder="이메일을 입력해주세요."
             aria-label="이메일"
+            onChange={(event) => setSignInEmail(event.target.value)}
           />
           <div className="relative">
             <input
               className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 py-0 pr-12 pl-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
               type={isPasswordVisible ? 'text' : 'password'}
+              value={signInPassword}
               placeholder="비밀번호를 입력해주세요."
               aria-label="비밀번호"
+              onChange={(event) => setSignInPassword(event.target.value)}
             />
             <button
               className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center"
@@ -306,9 +439,13 @@ const AuthEntryView = () => {
             <button
               className="bg-primary-300 text-neutral-0 h-12 rounded-md text-base font-semibold"
               type="submit"
+              disabled={postLoginMutation.isPending}
             >
               로그인
             </button>
+            {signInMessage && (
+              <p className="text-center text-sm text-neutral-500">{signInMessage}</p>
+            )}
             <p className="mt-1 text-center text-xs leading-[1.5] text-neutral-500">
               계정이 없으신가요?{' '}
               <button className="text-primary-300" type="button" onClick={handleOpenSignUp}>
