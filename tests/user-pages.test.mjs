@@ -36,3 +36,25 @@ test('Figma 기준 보호자 내비게이션과 리포트 표현을 제공한다
   assert.doesNotMatch(caregiver, /DUR 검색·병용금기 확인/);
   assert.match(caregiver, /src="\/arrow-right\.svg"/);
 });
+
+test('넓은 모바일 화면에서 콘텐츠 폭을 확장한다', async () => {
+  const [home, report, settings, caregiver, navigation] = await Promise.all([
+    readFile(new URL('../src/views/user-home/ui/UserHomeView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/views/user-report/ui/UserReportView.tsx', import.meta.url), 'utf8'),
+    readFile(
+      new URL('../src/views/user-settings/ui/UserSettingsView.tsx', import.meta.url),
+      'utf8',
+    ),
+    readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
+    readFile(
+      new URL('../src/widgets/user-navigation/ui/UserBottomNav.tsx', import.meta.url),
+      'utf8',
+    ),
+  ]);
+
+  for (const source of [home, report, settings, caregiver, navigation]) {
+    assert.match(source, /max-w-\[480px\]/);
+  }
+  assert.match(navigation, /min-\[430px\]:w-\[120px\]/);
+  assert.match(caregiver, /max-w-\[440px\]/);
+});

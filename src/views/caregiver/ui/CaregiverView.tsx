@@ -32,7 +32,7 @@ const CaregiverView = ({ screen }: CaregiverViewProps) => {
 
   return (
     <main className="min-h-dvh bg-neutral-100 pb-24">
-      <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+      <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
         {screen === 'main' ? <UserAppHeader /> : <SearchBar value={search} onChange={setSearch} />}
         <section className="mt-5 space-y-3">
           {isLoading && (
@@ -53,7 +53,7 @@ const CaregiverView = ({ screen }: CaregiverViewProps) => {
           ))}
         </section>
         <Link
-          className="bg-primary-400 text-neutral-0 fixed right-5 bottom-[109px] left-5 z-10 mx-auto flex h-12 max-w-[353px] items-center justify-center rounded-full font-semibold shadow-[0_6px_0_#1c8dd3]"
+          className="bg-primary-400 text-neutral-0 fixed right-5 bottom-[109px] left-5 z-10 mx-auto flex h-12 max-w-[440px] items-center justify-center rounded-full font-semibold shadow-[0_6px_0_#1c8dd3]"
           href="/caregiver/medications/new"
         >
           {screen === 'main' ? '새로운 약 등록하기' : '직접 등록하기'}
@@ -150,7 +150,7 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   };
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
-      <div className="mx-auto max-w-[393px] px-5 pt-[72px]">
+      <div className="mx-auto max-w-[480px] px-5 pt-[72px]">
         <label className="flex h-[178px] items-center justify-center border border-dashed border-neutral-400 text-neutral-600">
           ⇧ 사진 업로드
           <input className="sr-only" type="file" accept="image/*" />
@@ -196,7 +196,7 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
 
 const CaregiverSettings = () => (
   <main className="bg-neutral-0 min-h-dvh pb-24">
-    <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+    <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
       <UserAppHeader />
       <button
         className="mt-9 flex h-12 w-full items-center justify-between rounded-md bg-neutral-100 px-5 text-left"
@@ -211,7 +211,7 @@ const CaregiverSettings = () => (
 
 const MoreSheet = ({ onClose, onDelete }: { onClose: () => void; onDelete: () => void }) => (
   <div className="bg-neutral-1000/45 fixed inset-0 z-20" role="dialog">
-    <section className="bg-neutral-0 absolute right-0 bottom-0 left-0 rounded-t-2xl pb-5">
+    <section className="bg-neutral-0 absolute right-0 bottom-0 left-0 mx-auto max-w-[480px] rounded-t-2xl pb-5">
       <h2 className="py-5 text-center text-xl font-semibold">더보기</h2>
       <Link className="block px-8 py-3" href="/caregiver/medications/edit">
         내용 수정
@@ -246,7 +246,7 @@ const DeleteDialog = ({
   const { deleteMedication } = useMedicationMutations(patientId);
   return (
     <div className="bg-neutral-1000/45 fixed inset-0 z-30 px-5" role="dialog">
-      <section className="bg-neutral-0 mx-auto mt-[274px] max-w-[353px] rounded-xl p-6 text-center">
+      <section className="bg-neutral-0 mx-auto mt-[274px] max-w-[440px] rounded-xl p-6 text-center">
         <p className="text-system-error text-4xl">!</p>
         <h2 className="mt-4 text-xl font-semibold">정말 삭제하시겠습니까?</h2>
         <p className="mt-2 text-sm text-neutral-600">한번 삭제한 약은 다시 복구할 수 없습니다.</p>
@@ -267,7 +267,7 @@ const DeleteDialog = ({
 
 const CaregiverReport = () => (
   <main className="bg-neutral-0 min-h-dvh pb-24">
-    <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+    <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
       <UserAppHeader />
       <div className="mt-9 flex gap-2">
         <button className="bg-primary-400 text-neutral-0 h-9 rounded-full px-5 font-semibold">

@@ -21,7 +21,7 @@ const UserSettingsView = () => {
 
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
-      <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+      <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
         <UserAppHeader />
         <section className="mt-[36px] space-y-3" aria-label="설정 목록">
           <button
@@ -47,14 +47,14 @@ const UserSettingsView = () => {
             <Image src="/arrow-right.svg" alt="" width={24} height={24} />
           </button>
         </section>
-        <p className="absolute right-5 bottom-[119px] left-5 mx-auto max-w-[353px] text-xs leading-[18px] text-neutral-400">
+        <p className="absolute right-5 bottom-[119px] left-5 mx-auto max-w-[440px] text-xs leading-[18px] text-neutral-400">
           *본 서비스의 약 품목 및 성분 정보는 식품의약품안전처 공공 API를 활용하였습니다.
         </p>
       </div>
       <UserBottomNav />
       {panel && (
         <div className="bg-neutral-1000/45 fixed inset-0 z-20 px-5" role="dialog" aria-modal="true">
-          <section className="bg-neutral-0 mx-auto mt-[180px] max-w-[353px] rounded-xl p-6">
+          <section className="bg-neutral-0 mx-auto mt-[180px] max-w-[440px] rounded-xl p-6">
             <h2 className="text-xl font-semibold">
               {panel === 'profile' ? '나이와 성별 변경' : '초대 코드 재입력'}
             </h2>

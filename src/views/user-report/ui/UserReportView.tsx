@@ -26,7 +26,7 @@ const UserReportView = () => {
 
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
-      <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+      <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
         <UserAppHeader />
         <div className="mt-[36px] flex gap-2">
           <button
@@ -166,7 +166,7 @@ const MedicationDetailDialog = ({ dose, onClose, onTaken }: MedicationDetailDial
     aria-modal="true"
     aria-label="약 상세"
   >
-    <section className="bg-neutral-0 mx-auto mt-[127px] max-w-[353px] rounded-xl p-6">
+    <section className="bg-neutral-0 mx-auto mt-[127px] max-w-[440px] rounded-xl p-6">
       <div className="relative aspect-square overflow-hidden rounded-md border border-neutral-300">
         <Image
           className="object-cover"

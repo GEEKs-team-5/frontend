@@ -208,7 +208,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
 
   if (screen === 'start') {
     return (
-      <main className="bg-neutral-0 relative min-h-dvh px-5">
+      <main className="bg-neutral-0 relative mx-auto min-h-dvh w-full max-w-[480px] px-5">
         <Image
           className="absolute top-[120px] left-1/2 -translate-x-1/2"
           src="/medilink-logo.svg"
@@ -251,7 +251,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
                 : '복용자가 보내준\n초대 코드를 적어주세요';
 
     return (
-      <main className="bg-neutral-0 flex min-h-dvh flex-col px-5 pt-[52px]">
+      <main className="bg-neutral-0 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pt-[52px]">
         <button
           className="text-neutral-1000 -ml-1 flex size-8 items-center justify-center text-2xl leading-none"
           type="button"
@@ -411,7 +411,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
   }
 
   return (
-    <main className="bg-neutral-0 flex min-h-dvh flex-col px-5 pt-[52px]">
+    <main className="bg-neutral-0 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pt-[52px]">
       <button
         className="text-neutral-1000 -ml-1 flex size-8 items-center justify-center text-2xl leading-none"
         type="button"

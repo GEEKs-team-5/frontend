@@ -15,7 +15,7 @@ const UserHomeView = () => {
 
   return (
     <main className="min-h-dvh bg-neutral-100 pb-24">
-      <div className="mx-auto max-w-[393px] px-5 pt-[62px]">
+      <div className="mx-auto max-w-[480px] px-5 pt-[62px]">
         <UserAppHeader />
         <section className="bg-neutral-0 mt-5 rounded-xl px-5 py-5 text-center">
           <p className="text-sm text-neutral-600">
