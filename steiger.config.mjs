@@ -17,27 +17,15 @@ export default defineConfig([
     },
   },
   {
-    files: ['apps/*/src/app/providers.tsx'],
-    rules: {
-      'fsd/segments-by-purpose': 'off',
-    },
-  },
-  {
-    files: ['apps/*/src/{entities,features,widgets}/**/*.{ts,tsx}'],
-    rules: {
-      'fsd/insignificant-slice': 'off',
-    },
-  },
-  {
-    files: ['packages/core/src/{entities,shared}/index*.ts'],
+    files: ['src/{entities,shared}/index*.ts'],
     rules: {
       'fsd/no-layer-public-api': 'off',
     },
   },
   {
-    files: ['packages/core/src/entities/**/*.{ts,tsx}'],
+    files: ['src/shared/**'],
     rules: {
-      'fsd/insignificant-slice': 'off',
+      'fsd/public-api': 'off',
     },
   },
 ]);
