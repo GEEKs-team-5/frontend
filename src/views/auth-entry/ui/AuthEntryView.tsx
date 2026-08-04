@@ -151,49 +151,66 @@ const AuthEntryView = () => {
                   aria-label="회원가입 비밀번호"
                   onChange={(event) => setPassword(event.target.value)}
                 />
-                <input
-                  className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 px-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
-                  type={isPasswordVisible ? 'text' : 'password'}
-                  value={passwordConfirmation}
-                  placeholder="비밀번호를 한번 더 입력해주세요."
-                  aria-label="비밀번호 확인"
-                  onChange={(event) => setPasswordConfirmation(event.target.value)}
-                />
-                <button
-                  className="text-primary-300 text-sm"
-                  type="button"
-                  onClick={handleTogglePasswordVisibility}
-                >
-                  {isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'}
-                </button>
+                <div className="relative">
+                  <input
+                    className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 py-0 pr-12 pl-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    value={passwordConfirmation}
+                    placeholder="비밀번호를 한번 더 입력해주세요."
+                    aria-label="비밀번호 확인"
+                    onChange={(event) => setPasswordConfirmation(event.target.value)}
+                  />
+                  <button
+                    className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center"
+                    type="button"
+                    aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'}
+                    onClick={handleTogglePasswordVisibility}
+                  >
+                    <Image src="/auth-eye.svg" alt="" width={17} height={12} />
+                  </button>
+                </div>
               </>
             )}
             {screen === 'signup-role' && (
-              <select
-                className="bg-neutral-0 h-12 w-full rounded-md border border-neutral-300 px-4 text-base text-neutral-800 outline-none"
-                value={role}
-                aria-label="사용자 유형"
-                onChange={(event) => setRole(event.target.value)}
-              >
-                <option value="">선택해주세요</option>
-                <option value="guardian">보호자</option>
-                <option value="patient">복용자</option>
-              </select>
+              <div className="space-y-[6px]">
+                <button
+                  className="flex h-12 w-full items-center justify-between rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
+                  type="button"
+                  aria-label="사용자 유형"
+                >
+                  {role === 'guardian' ? '보호자' : role === 'patient' ? '복용자' : '선택해주세요'}
+                  <span aria-hidden="true">⌃</span>
+                </button>
+                <button
+                  className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
+                  type="button"
+                  onClick={() => setRole('guardian')}
+                >
+                  보호자
+                </button>
+                <button
+                  className="flex h-12 w-full items-center rounded-md border border-neutral-300 px-4 text-left text-base text-neutral-800"
+                  type="button"
+                  onClick={() => setRole('patient')}
+                >
+                  복용자
+                </button>
+              </div>
             )}
             {screen === 'signup-guardian' && (
               <>
-                <div className="flex h-[58px] items-center justify-center rounded-md border border-neutral-300 text-[32px] font-semibold text-neutral-800">
-                  123268
-                </div>
                 <button
-                  className="text-primary-300 w-full text-sm font-semibold"
+                  className="flex h-[58px] w-full items-center justify-center gap-[6px] rounded-md border border-dashed border-neutral-500 text-[32px] font-semibold text-neutral-800"
                   type="button"
                   onClick={() => void handleCopyInviteCode()}
                 >
-                  {isCodeCopied ? '초대 코드가 복사되었습니다' : '초대 코드 복사'}
+                  <Image src="/auth-copy.svg" alt="" width={16} height={19} />
+                  123268
                 </button>
                 <p className="text-sm text-neutral-500">
-                  초대 코드는 언제든 마이페이지에서 확인 가능합니다.
+                  {isCodeCopied
+                    ? '초대 코드가 복사되었습니다.'
+                    : '초대 코드는 언제든 마이페이지에서 확인 가능합니다.'}
                 </p>
               </>
             )}
@@ -229,15 +246,15 @@ const AuthEntryView = () => {
               />
             )}
           </div>
-          {!['signup-guardian', 'signup-invite'].includes(screen) && (
-            <button
-              className="bg-primary-300 text-neutral-0 mt-auto mb-[28px] h-12 rounded-md text-base font-semibold"
-              type="button"
-              onClick={handleSignUpNext}
-            >
-              다음 ›
-            </button>
-          )}
+          <button
+            className="bg-primary-300 text-neutral-0 mt-auto mb-[28px] h-12 rounded-md text-base font-semibold"
+            type="button"
+            onClick={
+              ['signup-guardian', 'signup-invite'].includes(screen) ? undefined : handleSignUpNext
+            }
+          >
+            {['signup-guardian', 'signup-invite'].includes(screen) ? '회원가입' : '다음 >'}
+          </button>
         </section>
       </main>
     );

@@ -4,8 +4,8 @@
   --color-primary-50: #edf8fe;
   --color-primary-100: #ceebff;
   --color-primary-200: #9cd8ff;
-  --color-primary-300: #65bcee;
-  --color-primary-400: #3ea5e3;
+  --color-primary-300: #6ebae5;
+  --color-primary-400: #49a2d8;
   --color-primary-500: #1c8dd3;
   --color-primary-600: #1273ae;
   --color-primary-700: #0b588b;
@@ -60,7 +60,7 @@
   --font-weight-semibold: 600;
   --line-height-display: 1.2;
   --line-height-heading: 1.2;
-  --line-height-body: 1.4;
+  --line-height-body: 1.5;
 }
 
 @media (min-width: 768px) {
