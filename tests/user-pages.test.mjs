@@ -135,6 +135,33 @@ test('보호자 약 등록은 KST 기준 시작일을 전송한다', async () =>
   assert.doesNotMatch(source, /startDate: new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
 });
 
+test('보호자 약 등록은 모바일 후면 카메라 촬영을 지원한다', async () => {
+  const source = await readFile(
+    new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(
+    source,
+    /type="file"\s+accept="image\/jpeg,image\/png,image\/webp"\s+capture="environment"/,
+  );
+});
+
+test('보호자 직접 등록에서 처방전 OCR 결과를 폼에 적용할 수 있다', async () => {
+  const [caregiver, ocrApi] = await Promise.all([
+    readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/entities/prescription/api/ocr.ts', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(
+    ocrApi,
+    /post<PrescriptionOcrResponseType>\('api\/v1\/prescriptions\/ocr\/base64', request\)/,
+  );
+  assert.match(caregiver, /analyzePrescriptionOcr/);
+  assert.match(caregiver, /사진 분석하기/);
+  assert.match(caregiver, /OCR 결과 적용/);
+});
+
 test('보호자 약 등록은 요일을 0부터 6까지의 정수 배열로 전송한다', async () => {
   const [caregiver, medicationApi] = await Promise.all([
     readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),

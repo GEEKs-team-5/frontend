@@ -19,6 +19,7 @@ import {
   getDrugSearch,
 } from '@/entities/drug';
 import { useGetMedications, useMedicationMutations } from '@/entities/medication';
+import { analyzePrescriptionOcr, type OcrMedicationResponseType } from '@/entities/prescription';
 import { usePostAcceptInvitation } from '@/features/auth';
 import { COOKIE_KEYS, deleteCookie } from '@/shared';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
@@ -293,6 +294,10 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const [interactionWarning, setInteractionWarning] = useState<InteractionWarningType | null>(null);
   const [interactionError, setInteractionError] = useState<string | null>(null);
   const [isCheckingInteraction, setIsCheckingInteraction] = useState(false);
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrMedications, setOcrMedications] = useState<OcrMedicationResponseType[] | null>(null);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [isOcrAnalyzing, setIsOcrAnalyzing] = useState(false);
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
   const { data: medications } = useGetMedications(patientId);
@@ -362,6 +367,53 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
     }
   };
 
+  const handleOcrFileChange = (file?: File) => {
+    setOcrFile(file ?? null);
+    setOcrError(null);
+    setOcrMedications(null);
+  };
+
+  const handleOcrAnalysis = async () => {
+    if (!ocrFile) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(ocrFile.type)) {
+      setOcrError('JPG, PNG, WebP 이미지만 분석할 수 있습니다.');
+      return;
+    }
+    if (ocrFile.size > 50 * 1024 * 1024) {
+      setOcrError('이미지 크기는 50MB 이하여야 합니다.');
+      return;
+    }
+
+    setOcrError(null);
+    setIsOcrAnalyzing(true);
+
+    try {
+      const imageBase64 = await readFileAsDataUrl(ocrFile);
+      const { medications } = await analyzePrescriptionOcr({
+        imageBase64,
+        mimeType: ocrFile.type as 'image/jpeg' | 'image/png' | 'image/webp',
+      });
+
+      if (!medications.length) {
+        setOcrError('처방전에서 약 정보를 찾지 못했습니다.');
+        return;
+      }
+
+      setOcrMedications(medications);
+    } catch {
+      setOcrError('사진을 분석하지 못했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsOcrAnalyzing(false);
+    }
+  };
+
+  const applyOcrMedication = (medication: OcrMedicationResponseType) => {
+    setName(medication.name);
+    setDosage(medication.dose ?? '');
+    setInstructions(medication.instructions ?? '');
+    setOcrMedications(null);
+  };
+
   const submit = async () => {
     if (!patientId || !name || !dosage || !/^\d{2}:\d{2}$/.test(time)) return;
     setInteractionError(null);
@@ -399,10 +451,52 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
       <div className="mx-auto max-w-[480px] px-5 pt-[72px]">
-        <label className="flex h-[178px] items-center justify-center border border-dashed border-neutral-400 text-neutral-600">
-          ⇧ 사진 업로드
-          <input className="sr-only" type="file" accept="image/*" />
-        </label>
+        {!isEdit && (
+          <>
+            <label className="flex h-[178px] items-center justify-center border border-dashed border-neutral-400 text-neutral-600">
+              {ocrFile ? ocrFile.name : '⇧ 사진 업로드'}
+              <input
+                className="sr-only"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                onChange={(event) => handleOcrFileChange(event.target.files?.[0])}
+              />
+            </label>
+            {ocrFile && (
+              <button
+                className="bg-primary-400 text-neutral-0 mt-3 h-10 w-full rounded-full font-semibold"
+                type="button"
+                onClick={() => void handleOcrAnalysis()}
+                disabled={isOcrAnalyzing}
+              >
+                {isOcrAnalyzing ? '사진 분석 중...' : '사진 분석하기'}
+              </button>
+            )}
+            {ocrError && <p className="text-system-error mt-3 text-sm">{ocrError}</p>}
+            {ocrMedications && (
+              <section className="mt-3 space-y-2" aria-label="OCR 인식 결과">
+                <p className="text-sm text-neutral-600">인식한 약을 선택해 내용을 적용해주세요.</p>
+                {ocrMedications.map((medication, index) => (
+                  <button
+                    className="flex w-full items-center justify-between rounded-md bg-neutral-100 px-4 py-3 text-left"
+                    type="button"
+                    key={`${medication.name}-${index}`}
+                    onClick={() => applyOcrMedication(medication)}
+                  >
+                    <span>
+                      <strong className="block">{medication.name}</strong>
+                      <small className="text-neutral-600">
+                        {medication.dose ?? '용량 확인 필요'}
+                      </small>
+                    </span>
+                    <span className="text-primary-400 text-sm font-semibold">OCR 결과 적용</span>
+                  </button>
+                ))}
+              </section>
+            )}
+          </>
+        )}
         <div className="mt-5 space-y-4">
           <input
             className="h-12 w-full rounded-md bg-neutral-100 px-4"
@@ -469,6 +563,14 @@ interface InteractionWarningType {
 
 const normalizeMedicationName = (medicationName: string) =>
   medicationName.replaceAll(' ', '').toLocaleLowerCase('ko-KR');
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 interface DrugSelectionDialogProps {
   drugs: DrugType[];
