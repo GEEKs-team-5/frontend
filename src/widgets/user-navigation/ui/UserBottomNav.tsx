@@ -35,7 +35,11 @@ const UserBottomNav = () => {
             key={href}
           >
             <Image
-              className={isActive && href !== '/home' ? 'brightness-0 saturate-100' : ''}
+              className={
+                isActive
+                  ? '[filter:brightness(0)_saturate(100%)_invert(72%)_sepia(30%)_saturate(943%)_hue-rotate(161deg)_brightness(91%)_contrast(90%)]'
+                  : ''
+              }
               src={icon}
               alt=""
               width={24}

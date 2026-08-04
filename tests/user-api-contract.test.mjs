@@ -12,6 +12,10 @@ test('사용자 화면은 프로필과 오늘 복약 API를 사용한다', async
   assert.match(doseApi, /`api\/v1\/patients\/\$\{patientId\}\/doses\/today`/);
   assert.match(doseApi, /`api\/v1\/doses\/\$\{occurrenceId\}\/taken`/);
   assert.match(doseApi, /`api\/v1\/patients\/\$\{patientId\}\/adherence\/weekly`/);
+  assert.match(
+    doseApi,
+    /`api\/v1\/patients\/\$\{patientId\}\/adherence\/monthly-by-weekday\?month=\$\{month\}`/,
+  );
 });
 
 test('메인·리포트·설정 화면은 사용자 API 훅을 소비한다', async () => {
@@ -25,6 +29,7 @@ test('메인·리포트·설정 화면은 사용자 API 훅을 소비한다', as
   ]);
 
   assert.match(home, /useGetTodayDoses/);
-  assert.match(report, /useGetWeeklyAdherence/);
+  assert.match(report, /useGetMonthlyWeekdayAdherence/);
+  assert.doesNotMatch(report, /useGetWeeklyAdherence/);
   assert.match(settings, /usePatchUserProfile/);
 });

@@ -30,3 +30,18 @@ export interface WeeklyAdherenceResponseType {
   weekEnd: string;
   weekStart: string;
 }
+
+export interface WeekdayAdherenceResponseType {
+  adherenceRate: number;
+  dayOfWeek: number;
+  label: string;
+  scheduledCount: number;
+  takenCount: number;
+}
+
+export interface MonthlyWeekdayAdherenceResponseType {
+  month: string;
+  patientId: string;
+  throughDate: string | null;
+  weekdays: WeekdayAdherenceResponseType[];
+}

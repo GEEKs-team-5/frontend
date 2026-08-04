@@ -6,6 +6,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { useGetCareLinks } from '@/entities/care-link';
+import {
+  type DrugInteractionItemResponseType,
+  type DrugType,
+  getDrugInteractions,
+  getDrugSearch,
+} from '@/entities/drug';
 import { useGetMedications, useMedicationMutations } from '@/entities/medication';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
 
@@ -133,20 +139,79 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
   const [time, setTime] = useState('');
+  const [drugCandidates, setDrugCandidates] = useState<DrugType[] | null>(null);
+  const [interactionWarning, setInteractionWarning] = useState<InteractionWarningType | null>(null);
+  const [interactionError, setInteractionError] = useState<string | null>(null);
+  const [isCheckingInteraction, setIsCheckingInteraction] = useState(false);
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
+  const { data: medications } = useGetMedications(patientId);
   const { postMedication } = useMedicationMutations(patientId);
-  const submit = () => {
-    if (!patientId || !name || !dosage || !/^\d{2}:\d{2}$/.test(time)) return;
+
+  const registerMedication = (medicationName: string) => {
+    if (!patientId) return;
+
     postMedication.mutate({
       patientId,
-      name,
+      name: medicationName,
       dosage,
       instructions,
       times: [time],
       daysOfWeek: ['0', '1', '2', '3', '4', '5', '6'],
       startDate: new Date().toISOString().slice(0, 10),
     });
+  };
+
+  const checkInteraction = async (drug: DrugType) => {
+    setDrugCandidates(null);
+    setIsCheckingInteraction(true);
+
+    try {
+      const interactions = await getDrugInteractions(drug.itemSeq);
+      const warning = interactions.items.find((interaction) =>
+        medications?.some(
+          (medication) =>
+            normalizeMedicationName(medication.name) ===
+            normalizeMedicationName(interaction.contraindicatedDrugName ?? ''),
+        ),
+      );
+      const medication = medications?.find(
+        (item) =>
+          normalizeMedicationName(item.name) ===
+          normalizeMedicationName(warning?.contraindicatedDrugName ?? ''),
+      );
+
+      if (warning && medication) {
+        setInteractionWarning({ drug, medicationName: medication.name, warning });
+        return;
+      }
+
+      registerMedication(drug.name);
+    } catch {
+      setInteractionError('약물 상호작용을 확인하지 못했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsCheckingInteraction(false);
+    }
+  };
+
+  const submit = async () => {
+    if (!patientId || !name || !dosage || !/^\d{2}:\d{2}$/.test(time)) return;
+    setInteractionError(null);
+    setIsCheckingInteraction(true);
+
+    try {
+      const { items } = await getDrugSearch(name);
+      if (!items.length) {
+        setInteractionError('약 정보를 찾을 수 없습니다. 정확한 제품명을 입력해주세요.');
+        return;
+      }
+
+      setDrugCandidates(items);
+    } catch {
+      setInteractionError('약 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+    } finally {
+      setIsCheckingInteraction(false);
+    }
   };
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
@@ -181,18 +246,128 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
             placeholder="약 복용 시간을 적어주세요 (ex: 09:30)"
           />
         </div>
+        {interactionError && <p className="text-system-error mt-3 text-sm">{interactionError}</p>}
         <button
           className="bg-primary-400 text-neutral-0 mt-[180px] h-12 w-full rounded-full font-semibold shadow-[0_6px_0_#1c8dd3]"
           type="button"
           onClick={submit}
+          disabled={isCheckingInteraction}
         >
-          {isEdit ? '수정하기' : '등록하기'}
+          {isCheckingInteraction ? '검사 중...' : isEdit ? '수정하기' : '등록하기'}
         </button>
       </div>
       <UserBottomNav />
+      {drugCandidates && (
+        <DrugSelectionDialog
+          drugs={drugCandidates}
+          onClose={() => setDrugCandidates(null)}
+          onSelect={(drug) => void checkInteraction(drug)}
+        />
+      )}
+      {interactionWarning && (
+        <DrugInteractionWarningDialog
+          warning={interactionWarning}
+          onCancel={() => setInteractionWarning(null)}
+          onConfirm={() => {
+            registerMedication(interactionWarning.drug.name);
+            setInteractionWarning(null);
+          }}
+        />
+      )}
     </main>
   );
 };
+
+interface InteractionWarningType {
+  drug: DrugType;
+  medicationName: string;
+  warning: DrugInteractionItemResponseType;
+}
+
+const normalizeMedicationName = (medicationName: string) =>
+  medicationName.replaceAll(' ', '').toLocaleLowerCase('ko-KR');
+
+interface DrugSelectionDialogProps {
+  drugs: DrugType[];
+  onClose: () => void;
+  onSelect: (drug: DrugType) => void;
+}
+
+const DrugSelectionDialog = ({ drugs, onClose, onSelect }: DrugSelectionDialogProps) => (
+  <div className="bg-neutral-1000/45 fixed inset-0 z-20 px-5" role="dialog" aria-modal="true">
+    <section className="bg-neutral-0 mx-auto mt-[120px] max-w-[440px] rounded-xl p-6">
+      <h2 className="text-xl font-semibold">등록할 약을 선택해주세요</h2>
+      <div className="mt-5 max-h-[360px] space-y-2 overflow-y-auto">
+        {drugs.map((drug) => (
+          <button
+            className="w-full rounded-md bg-neutral-100 px-4 py-3 text-left"
+            type="button"
+            key={drug.itemSeq}
+            onClick={() => onSelect(drug)}
+          >
+            <strong className="block">{drug.name}</strong>
+            {drug.manufacturer && (
+              <span className="mt-1 block text-sm text-neutral-600">{drug.manufacturer}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <button className="mt-3 h-10 w-full text-neutral-500" type="button" onClick={onClose}>
+        취소
+      </button>
+    </section>
+  </div>
+);
+
+interface DrugInteractionWarningDialogProps {
+  onCancel: () => void;
+  onConfirm: () => void;
+  warning: InteractionWarningType;
+}
+
+const DrugInteractionWarningDialog = ({
+  onCancel,
+  onConfirm,
+  warning,
+}: DrugInteractionWarningDialogProps) => (
+  <div className="bg-neutral-1000/45 fixed inset-0 z-30 px-5" role="dialog" aria-modal="true">
+    <section className="bg-neutral-0 mx-auto mt-[160px] max-w-[440px] rounded-xl p-6 text-center">
+      <div className="flex flex-col items-center gap-12">
+        <div className="flex flex-col items-center gap-4">
+          <Image src="/drug-interaction-warning.svg" alt="경고" width={48} height={48} />
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-semibold">약물 상호작용 주의</h2>
+            <p className="text-base leading-[1.2] text-neutral-600">
+              <strong>&apos;{warning.drug.name}&apos;</strong>은(는) 현재 복용 중인{' '}
+              <strong>&apos;{warning.medicationName}&apos;</strong>과(와) 함께 드실 경우{' '}
+              {warning.warning.reason
+                ? `${warning.warning.reason}을 유발할 수 있습니다.`
+                : '주의가 필요할 수 있습니다.'}
+              <br />
+              정말 등록하시겠습니까?
+            </p>
+          </div>
+        </div>
+        <div className="w-full">
+          <button
+            className="text-neutral-0 w-full rounded-full bg-[#eb5757] px-5 py-4 font-semibold"
+            type="button"
+            onClick={onConfirm}
+          >
+            확인
+          </button>
+          <button
+            className="w-full rounded-xl px-5 py-4 font-semibold text-neutral-600"
+            type="button"
+            onClick={onCancel}
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+);
 
 const CaregiverSettings = () => (
   <main className="bg-neutral-0 min-h-dvh pb-24">

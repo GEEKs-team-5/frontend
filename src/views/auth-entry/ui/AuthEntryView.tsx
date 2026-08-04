@@ -98,7 +98,28 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
       return;
     }
     if (screen === 'signup-role') {
-      setScreen(getNextScreen(screen, role === 'guardian' ? 'select-guardian' : 'select-patient'));
+      if (role === 'patient') {
+        setScreen(getNextScreen(screen, 'select-patient'));
+        return;
+      }
+
+      const registerResult = RegisterSchema.safeParse({
+        email,
+        password,
+        role: 'CAREGIVER',
+      });
+
+      if (!registerResult.success) {
+        setSignupMessage(registerResult.error.issues[0]?.message ?? '입력값을 확인해주세요.');
+        return;
+      }
+
+      try {
+        await postRegisterMutation.mutateAsync(registerResult.data);
+        setScreen(getNextScreen(screen, 'select-guardian'));
+      } catch {
+        setSignupMessage('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
       return;
     }
     if (screen !== 'signup-profile') return;
@@ -108,7 +129,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
       email,
       gender: gender === 'female' ? 'FEMALE' : gender === 'male' ? 'MALE' : undefined,
       password,
-      role: role === 'patient' ? 'PATIENT' : role === 'guardian' ? 'CAREGIVER' : undefined,
+      role: 'PATIENT',
     });
 
     if (!registerResult.success) {
@@ -119,14 +140,9 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
     try {
       await postRegisterMutation.mutateAsync(registerResult.data);
 
-      if (registerResult.data.role === 'PATIENT') {
-        const invitation = await postCareInvitationMutation.mutateAsync();
-        setInvitationCode(invitation.code);
-        setScreen(getNextScreen(screen, 'register-patient'));
-        return;
-      }
-
-      setScreen(getNextScreen(screen, 'register-guardian'));
+      const invitation = await postCareInvitationMutation.mutateAsync();
+      setInvitationCode(invitation.code);
+      setScreen(getNextScreen(screen, 'register-patient'));
     } catch {
       setSignupMessage('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }

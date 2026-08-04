@@ -6,8 +6,8 @@ import Image from 'next/image';
 
 import {
   type TodayDoseItemResponseType,
+  useGetMonthlyWeekdayAdherence,
   useGetTodayDoses,
-  useGetWeeklyAdherence,
   usePatchDoseTaken,
 } from '@/entities/dose';
 import { useGetUserProfile } from '@/entities/user';
@@ -18,11 +18,25 @@ const UserReportView = () => {
   const [selectedDose, setSelectedDose] = useState<TodayDoseItemResponseType | null>(null);
   const { data: profile } = useGetUserProfile();
   const patientId = profile?.activeRole === 'PATIENT' ? profile.id : undefined;
+  const currentDate = new Date();
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   const { data: todayDoses } = useGetTodayDoses(patientId);
-  const { data: weeklyAdherence } = useGetWeeklyAdherence(patientId);
+  const { data: monthlyWeekdayAdherence } = useGetMonthlyWeekdayAdherence(patientId, currentMonth);
   const patchDoseTakenMutation = usePatchDoseTaken(patientId);
-  const weeklyRates =
-    weeklyAdherence?.daily.map((daily) => Math.round((daily.adherenceRate ?? 0) * 100)) ?? [];
+  const monthlyWeekdays = monthlyWeekdayAdherence?.weekdays ?? [];
+  const monthlyScheduledCount = monthlyWeekdays.reduce(
+    (total, weekday) => total + weekday.scheduledCount,
+    0,
+  );
+  const monthlyTakenCount = monthlyWeekdays.reduce(
+    (total, weekday) => total + weekday.takenCount,
+    0,
+  );
+  const monthlyRates = [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+    const weekday = monthlyWeekdays.find((item) => item.dayOfWeek === dayOfWeek);
+
+    return Math.round((weekday?.adherenceRate ?? 0) * 100);
+  });
 
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
@@ -62,9 +76,12 @@ const UserReportView = () => {
             <div className="grid grid-cols-2 overflow-hidden rounded-xl bg-neutral-100">
               <div className="border-neutral-0 flex justify-between border-r px-4 py-4">
                 <span>
-                  <p className="text-sm text-neutral-700">주간 복용률</p>
+                  <p className="text-sm text-neutral-700">월간 복용률</p>
                   <strong className="text-primary-400 text-2xl">
-                    {Math.round((weeklyAdherence?.adherenceRate ?? 0) * 100)}%
+                    {monthlyScheduledCount
+                      ? Math.round((monthlyTakenCount / monthlyScheduledCount) * 100)
+                      : 0}
+                    %
                   </strong>
                 </span>
                 <Image src="/report-rate.svg" alt="" width={24} height={24} />
@@ -72,17 +89,15 @@ const UserReportView = () => {
               <div className="flex justify-between px-4 py-4">
                 <span>
                   <p className="text-sm text-neutral-700">총 복용 횟수</p>
-                  <strong className="text-primary-400 text-2xl">
-                    {weeklyAdherence?.scheduledCount ?? 0}회
-                  </strong>
+                  <strong className="text-primary-400 text-2xl">{monthlyScheduledCount}회</strong>
                 </span>
                 <Image src="/report-count.svg" alt="" width={24} height={24} />
               </div>
             </div>
             <div className="mt-4 rounded-xl bg-neutral-100 px-5 pt-5 pb-4">
-              <h2 className="text-lg font-semibold">주간 요일별 약 복용률</h2>
+              <h2 className="text-lg font-semibold">월간 요일별 약 복용률</h2>
               <div className="mt-8 flex h-[344px] items-end justify-between border-b border-neutral-300">
-                {weeklyRates.map((rate, index) => (
+                {monthlyRates.map((rate, index) => (
                   <div className="flex h-full w-6 flex-col items-center justify-end" key={index}>
                     <span className="mb-1 text-xs text-neutral-700">{rate}%</span>
                     <div

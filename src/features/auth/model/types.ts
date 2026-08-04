@@ -8,7 +8,7 @@ export interface LoginReqType {
 }
 
 export interface RegisterReqType extends LoginReqType {
-  age: number;
+  age?: number;
   gender?: GenderType;
   role: UserRoleType;
 }

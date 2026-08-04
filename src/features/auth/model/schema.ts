@@ -5,8 +5,10 @@ export const LoginSchema = z.object({
   password: z.string().min(8, '비밀번호는 8자 이상 입력해주세요.'),
 });
 
+const AgeSchema = z.coerce.number().int().positive('나이를 입력해주세요.');
+
 export const RegisterSchema = LoginSchema.extend({
-  age: z.coerce.number().int().positive('나이를 입력해주세요.'),
+  age: AgeSchema.optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
   role: z.enum(['PATIENT', 'CAREGIVER']),
 });
@@ -41,7 +43,7 @@ export const getSignupValidationMessage = (step: SignupStepType, values: SignupV
   if (step === 'role') return values.role ? null : '사용자 유형을 선택해주세요.';
 
   if (step === 'profile') {
-    const ageMessage = getSchemaMessage(RegisterSchema.shape.age.safeParse(values.age));
+    const ageMessage = getSchemaMessage(AgeSchema.safeParse(values.age));
     if (ageMessage) return ageMessage;
 
     return values.gender ? null : '성별을 선택해주세요.';
