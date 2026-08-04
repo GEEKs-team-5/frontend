@@ -184,6 +184,10 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
+
+  useEffect(() => {
     if (screen !== 'splash') return;
 
     const timeoutId = window.setTimeout(
@@ -395,7 +399,11 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
             }
             disabled={postRegisterMutation.isPending || postAcceptInvitationMutation.isPending}
           >
-            {screen === 'signup-patient' ? '완료' : screen === 'signup-invite' ? '회원가입' : '다음 >'}
+            {screen === 'signup-patient'
+              ? '완료'
+              : screen === 'signup-invite'
+                ? '회원가입'
+                : '다음 >'}
           </button>
         </section>
       </main>

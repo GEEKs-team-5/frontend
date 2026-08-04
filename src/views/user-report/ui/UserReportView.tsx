@@ -81,7 +81,7 @@ const UserReportView = () => {
             </div>
             <div className="mt-4 rounded-xl bg-neutral-100 px-5 pt-5 pb-4">
               <h2 className="text-lg font-semibold">주간 요일별 약 복용률</h2>
-              <div className="mt-8 flex h-[270px] items-end justify-between border-b border-neutral-300">
+              <div className="mt-8 flex h-[344px] items-end justify-between border-b border-neutral-300">
                 {weeklyRates.map((rate, index) => (
                   <div className="flex h-full w-6 flex-col items-center justify-end" key={index}>
                     <span className="mb-1 text-xs text-neutral-700">{rate}%</span>
@@ -146,7 +146,7 @@ const ReportMedicationSection = ({ doses, title, onOpen }: ReportMedicationSecti
               {dose.medication.dosage}
             </small>
           </span>
-          <Image src="/arrow-right.svg" alt="상세 보기" width={24} height={24} />
+          <Image src="/arrow-right.svg" alt="상세 보기" width={6} height={10} />
         </button>
       ))}
     </div>

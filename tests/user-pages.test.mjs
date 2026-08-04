@@ -20,3 +20,19 @@ test('리포트 약 목록에서 상세 팝업을 제공한다', async () => {
 
   assert.match(source, /role="dialog"/);
 });
+
+test('Figma 기준 보호자 내비게이션과 리포트 표현을 제공한다', async () => {
+  const [navigation, userReport, caregiver] = await Promise.all([
+    readFile(
+      new URL('../src/widgets/user-navigation/ui/UserBottomNav.tsx', import.meta.url),
+      'utf8',
+    ),
+    readFile(new URL('../src/views/user-report/ui/UserReportView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(navigation, /href: '\/caregiver\/report'/);
+  assert.match(userReport, /h-\[344px\]/);
+  assert.doesNotMatch(caregiver, /DUR 검색·병용금기 확인/);
+  assert.match(caregiver, /src="\/arrow-right\.svg"/);
+});

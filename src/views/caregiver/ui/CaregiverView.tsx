@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { useGetCareLinks } from '@/entities/care-link';
-import { getDrugInteractions, getDrugSearch } from '@/entities/drug';
 import { useGetMedications, useMedicationMutations } from '@/entities/medication';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
 
@@ -134,7 +133,6 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
   const [time, setTime] = useState('');
-  const [drugMessage, setDrugMessage] = useState('');
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
   const { postMedication } = useMedicationMutations(patientId);
@@ -190,19 +188,6 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
         >
           {isEdit ? '수정하기' : '등록하기'}
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            void getDrugSearch(name).then(async (result) => {
-              const drug = result.items[0];
-              setDrugMessage(drug ? `검색됨: ${drug.name}` : '검색 결과가 없습니다.');
-              if (drug) await getDrugInteractions(drug.itemSeq);
-            })
-          }
-        >
-          DUR 검색·병용금기 확인
-        </button>
-        {drugMessage && <p>{drugMessage}</p>}
       </div>
       <UserBottomNav />
     </main>
@@ -294,10 +279,19 @@ const CaregiverReport = () => (
       </div>
       <h2 className="mt-7 border-b border-neutral-200 pb-2">복용 완료한 약</h2>
       {cards.slice(0, 4).map((_, index) => (
-        <div className="mt-2 rounded-md bg-neutral-50 p-5" key={index}>
-          <strong className="block text-xl">약 이름</strong>
-          <span className="text-primary-400 text-sm">1알 / 저녁 식사 후</span>
-        </div>
+        <button
+          className="mt-2 flex h-[89px] w-full items-center justify-between rounded-md bg-neutral-50 px-5 text-left"
+          type="button"
+          key={index}
+        >
+          <span>
+            <strong className="block text-xl">약 이름</strong>
+            <small className="text-primary-400 mt-0.5 block text-sm font-semibold">
+              1알 / 저녁 식사 후
+            </small>
+          </span>
+          <Image src="/arrow-right.svg" alt="상세 보기" width={6} height={10} />
+        </button>
       ))}
     </div>
     <UserBottomNav />

@@ -31,3 +31,12 @@ test('인증 완료 후 사용자 메인으로 이동', async () => {
 
   assert.equal((source.match(/router\.replace\('\/home'\)/g) ?? []).length, 3);
 });
+
+test('회원가입 단계 전환 시 화면을 상단 기준선으로 되돌린다', async () => {
+  const source = await readFile(
+    new URL('../src/views/auth-entry/ui/AuthEntryView.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /window\.scrollTo\(0, 0\)/);
+});
