@@ -42,7 +42,7 @@ const UserSettingsView = () => {
             }}
           >
             나이/성별 변경하기
-            <Image src="/arrow-right.svg" alt="" width={24} height={24} />
+            <Image src="/arrow-right.svg" alt="" width={6} height={10} />
           </button>
         </section>
         <button
