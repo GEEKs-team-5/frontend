@@ -4,14 +4,25 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 
+import {
+  type TodayDoseItemResponseType,
+  useGetTodayDoses,
+  useGetWeeklyAdherence,
+  usePatchDoseTaken,
+} from '@/entities/dose';
+import { useGetUserProfile } from '@/entities/user';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
-
-const medications = Array.from({ length: 4 });
-const weeklyRates = [60, 40, 40, 40, 80, 20, 20];
 
 const UserReportView = () => {
   const [reportType, setReportType] = useState<'daily' | 'monthly'>('daily');
-  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
+  const [selectedDose, setSelectedDose] = useState<TodayDoseItemResponseType | null>(null);
+  const { data: profile } = useGetUserProfile();
+  const patientId = profile?.activeRole === 'PATIENT' ? profile.id : undefined;
+  const { data: todayDoses } = useGetTodayDoses(patientId);
+  const { data: weeklyAdherence } = useGetWeeklyAdherence(patientId);
+  const patchDoseTakenMutation = usePatchDoseTaken(patientId);
+  const weeklyRates =
+    weeklyAdherence?.daily.map((daily) => Math.round((daily.adherenceRate ?? 0) * 100)) ?? [];
 
   return (
     <main className="bg-neutral-0 min-h-dvh pb-24">
@@ -35,29 +46,41 @@ const UserReportView = () => {
         </div>
         {reportType === 'daily' ? (
           <div className="mt-7 space-y-6">
-            <ReportMedicationSection title="복용 완료한 약" onOpen={() => setIsDetailOpen(true)} />
-            <ReportMedicationSection title="복용 미완료 약" onOpen={() => setIsDetailOpen(true)} />
+            <ReportMedicationSection
+              title="복용 완료한 약"
+              doses={todayDoses?.items.filter((dose) => dose.status === 'TAKEN') ?? []}
+              onOpen={setSelectedDose}
+            />
+            <ReportMedicationSection
+              title="복용 미완료 약"
+              doses={todayDoses?.items.filter((dose) => dose.status !== 'TAKEN') ?? []}
+              onOpen={setSelectedDose}
+            />
           </div>
         ) : (
           <section className="mt-6">
             <div className="grid grid-cols-2 overflow-hidden rounded-xl bg-neutral-100">
               <div className="border-neutral-0 flex justify-between border-r px-4 py-4">
                 <span>
-                  <p className="text-sm text-neutral-700">월간 복용률</p>
-                  <strong className="text-primary-400 text-2xl">85%</strong>
+                  <p className="text-sm text-neutral-700">주간 복용률</p>
+                  <strong className="text-primary-400 text-2xl">
+                    {Math.round((weeklyAdherence?.adherenceRate ?? 0) * 100)}%
+                  </strong>
                 </span>
                 <Image src="/report-rate.svg" alt="" width={24} height={24} />
               </div>
               <div className="flex justify-between px-4 py-4">
                 <span>
                   <p className="text-sm text-neutral-700">총 복용 횟수</p>
-                  <strong className="text-primary-400 text-2xl">90회</strong>
+                  <strong className="text-primary-400 text-2xl">
+                    {weeklyAdherence?.scheduledCount ?? 0}회
+                  </strong>
                 </span>
                 <Image src="/report-count.svg" alt="" width={24} height={24} />
               </div>
             </div>
             <div className="mt-4 rounded-xl bg-neutral-100 px-5 pt-5 pb-4">
-              <h2 className="text-lg font-semibold">월간 요일별 약 복용률</h2>
+              <h2 className="text-lg font-semibold">주간 요일별 약 복용률</h2>
               <div className="mt-8 flex h-[270px] items-end justify-between border-b border-neutral-300">
                 {weeklyRates.map((rate, index) => (
                   <div className="flex h-full w-6 flex-col items-center justify-end" key={index}>
@@ -83,33 +106,44 @@ const UserReportView = () => {
         )}
       </div>
       <UserBottomNav />
-      {isDetailOpen && <MedicationDetailDialog onClose={() => setIsDetailOpen(false)} />}
+      {selectedDose && (
+        <MedicationDetailDialog
+          dose={selectedDose}
+          onClose={() => setSelectedDose(null)}
+          onTaken={() =>
+            patchDoseTakenMutation.mutate(selectedDose.id, {
+              onSuccess: () => setSelectedDose(null),
+            })
+          }
+        />
+      )}
     </main>
   );
 };
 
 interface ReportMedicationSectionProps {
-  onOpen: () => void;
+  doses: TodayDoseItemResponseType[];
+  onOpen: (dose: TodayDoseItemResponseType) => void;
   title: string;
 }
 
-const ReportMedicationSection = ({ title, onOpen }: ReportMedicationSectionProps) => (
+const ReportMedicationSection = ({ doses, title, onOpen }: ReportMedicationSectionProps) => (
   <section>
     <h2 className="flex items-center gap-3 text-base font-medium before:content-[''] after:h-px after:flex-1 after:bg-neutral-200">
       {title}
     </h2>
     <div className="mt-3 space-y-2">
-      {medications.map((_, index) => (
+      {doses.map((dose) => (
         <button
           className="flex h-[89px] w-full items-center justify-between rounded-md bg-neutral-50 px-5 text-left"
           type="button"
-          key={index}
-          onClick={onOpen}
+          key={dose.id}
+          onClick={() => onOpen(dose)}
         >
           <span>
-            <strong className="block text-xl">약 이름</strong>
+            <strong className="block text-xl">{dose.medication.name}</strong>
             <small className="text-primary-400 mt-0.5 block text-sm font-semibold">
-              1알 / 저녁 식사 후
+              {dose.medication.dosage}
             </small>
           </span>
           <Image src="/arrow-right.svg" alt="상세 보기" width={24} height={24} />
@@ -120,10 +154,12 @@ const ReportMedicationSection = ({ title, onOpen }: ReportMedicationSectionProps
 );
 
 interface MedicationDetailDialogProps {
+  dose: TodayDoseItemResponseType;
   onClose: () => void;
+  onTaken: () => void;
 }
 
-const MedicationDetailDialog = ({ onClose }: MedicationDetailDialogProps) => (
+const MedicationDetailDialog = ({ dose, onClose, onTaken }: MedicationDetailDialogProps) => (
   <div
     className="bg-neutral-1000/45 fixed inset-0 z-20 px-5"
     role="dialog"
@@ -141,16 +177,16 @@ const MedicationDetailDialog = ({ onClose }: MedicationDetailDialogProps) => (
         />
       </div>
       <div className="mt-4">
-        <h2 className="text-neutral-1000 text-xl font-semibold">약 이름</h2>
-        <p className="text-primary-400 mt-0.5 text-sm font-semibold">1알 / 저녁 식사 후</p>
+        <h2 className="text-neutral-1000 text-xl font-semibold">{dose.medication.name}</h2>
+        <p className="text-primary-400 mt-0.5 text-sm font-semibold">{dose.medication.dosage}</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          주의사항 두줄까지 들어갑니다. 무슨 약과 같이 먹지 마십시오
+          {dose.medication.instructions ?? '주의사항이 없습니다.'}
         </p>
       </div>
       <button
         className="bg-primary-400 text-neutral-0 mt-9 h-10 w-full rounded-full text-base font-semibold shadow-[0_6px_0_#1c8dd3]"
         type="button"
-        onClick={onClose}
+        onClick={onTaken}
       >
         복용했어요!
       </button>
