@@ -184,6 +184,18 @@ test('보호자 월간 리포트의 요약 아이콘은 정사각형으로 고�
   }
 });
 
+test('월간 요일별 복용률은 API의 퍼센트 값을 그대로 표시한다', async () => {
+  const [caregiver, userReport] = await Promise.all([
+    readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/views/user-report/ui/UserReportView.tsx', import.meta.url), 'utf8'),
+  ]);
+
+  for (const source of [caregiver, userReport]) {
+    assert.match(source, /return Math\.round\(weekday\?\.adherenceRate \?\? 0\);/);
+    assert.doesNotMatch(source, /adherenceRate \?\? 0\) \* 100/);
+  }
+});
+
 test('보호자 약 수정은 기존 값을 채우고 PATCH 요청을 보낸다', async () => {
   const source = await readFile(
     new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url),

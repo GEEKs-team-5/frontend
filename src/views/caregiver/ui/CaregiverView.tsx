@@ -711,7 +711,7 @@ const CaregiverReport = () => {
   const monthlyRates = [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
     const weekday = monthlyWeekdays.find((item) => item.dayOfWeek === dayOfWeek);
 
-    return Math.round((weekday?.adherenceRate ?? 0) * 100);
+    return Math.round(weekday?.adherenceRate ?? 0);
   });
 
   return (
