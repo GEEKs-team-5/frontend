@@ -14,4 +14,8 @@ test('인증 진입 화면 전환', () => {
   assert.equal(getNextScreen('splash', 'splash-timeout'), 'start');
   assert.equal(getNextScreen('start', 'open-signin'), 'signin');
   assert.equal(getNextScreen('signin', 'go-back'), 'start');
+  assert.equal(getNextScreen('start', 'open-signup'), 'signup-email');
+  assert.equal(getNextScreen('signup-email', 'next'), 'signup-password');
+  assert.equal(getNextScreen('signup-role', 'select-guardian'), 'signup-guardian');
+  assert.equal(getNextScreen('signup-role', 'select-patient'), 'signup-profile');
 });
