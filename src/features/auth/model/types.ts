@@ -1,6 +1,6 @@
 export type UserRoleType = 'PATIENT' | 'CAREGIVER';
 
-export type GenderType = 'MALE' | 'FEMALE';
+export type GenderType = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 
 export interface LoginReqType {
   email: string;
@@ -9,13 +9,25 @@ export interface LoginReqType {
 
 export interface RegisterReqType extends LoginReqType {
   age: number;
-  gender: GenderType;
+  gender?: GenderType;
   role: UserRoleType;
+}
+
+export interface UserProfileResponseType {
+  activeRole: UserRoleType;
+  age: number | null;
+  createdAt: string;
+  email: string;
+  gender: GenderType;
+  id: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponseType {
   accessToken: string;
+  refreshToken: string;
   tokenType: string;
+  user: UserProfileResponseType;
 }
 
 export interface CareInvitationResponseType {

@@ -76,11 +76,11 @@ axiosInstance.interceptors.response.use(
       const refreshToken = getCookie(COOKIE_KEYS.REFRESH_TOKEN);
       if (!refreshToken) throw new Error('No refresh token');
 
-      const { data } = await refreshAxiosInstance.put(authUrl.putRefresh(), {
+      const { data } = await refreshAxiosInstance.post(authUrl.postRefresh(), {
         refreshToken,
       });
 
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data;
 
       if (!newAccessToken) throw new Error('No new token returned');
 

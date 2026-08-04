@@ -7,7 +7,7 @@ export const LoginSchema = z.object({
 
 export const RegisterSchema = LoginSchema.extend({
   age: z.coerce.number().int().positive('나이를 입력해주세요.'),
-  gender: z.enum(['MALE', 'FEMALE']),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
   role: z.enum(['PATIENT', 'CAREGIVER']),
 });
 

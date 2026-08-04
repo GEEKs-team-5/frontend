@@ -10,13 +10,19 @@ import { postAcceptInvitation, postCareInvitation } from '../api/care-link';
 export const usePostLogin = () =>
   useMutation({
     mutationFn: postLogin,
-    onSuccess: ({ accessToken }) => setCookie(COOKIE_KEYS.ACCESS_TOKEN, accessToken),
+    onSuccess: ({ accessToken, refreshToken }) => {
+      setCookie(COOKIE_KEYS.ACCESS_TOKEN, accessToken);
+      setCookie(COOKIE_KEYS.REFRESH_TOKEN, refreshToken);
+    },
   });
 
 export const usePostRegister = () =>
   useMutation({
     mutationFn: postRegister,
-    onSuccess: ({ accessToken }) => setCookie(COOKIE_KEYS.ACCESS_TOKEN, accessToken),
+    onSuccess: ({ accessToken, refreshToken }) => {
+      setCookie(COOKIE_KEYS.ACCESS_TOKEN, accessToken);
+      setCookie(COOKIE_KEYS.REFRESH_TOKEN, refreshToken);
+    },
   });
 
 export const usePostCareInvitation = () => useMutation({ mutationFn: postCareInvitation });
