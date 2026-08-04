@@ -10,7 +10,6 @@ export const getNextScreen = (screen, action) => {
   if (screen === 'signup-role' && action === 'select-patient') return 'signup-profile';
   if (screen === 'signup-profile' && action === 'register-guardian') return 'signup-invite';
   if (screen === 'signup-profile' && action === 'register-patient') return 'signup-patient';
-  if (screen === 'signup-patient' && action === 'complete') return 'start';
   if (screen === 'signup-email' && action === 'go-back') return 'start';
   if (screen === 'signup-password' && action === 'go-back') return 'signup-email';
   if (screen === 'signup-role' && action === 'go-back') return 'signup-password';

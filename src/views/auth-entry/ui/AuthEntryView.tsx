@@ -152,7 +152,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
 
     try {
       await postAcceptInvitationMutation.mutateAsync(inviteCode.trim());
-      setSignupMessage('보호자 연결이 완료되었습니다.');
+      router.replace('/home');
     } catch {
       setSignupMessage('초대 코드를 확인해주세요.');
     }
@@ -170,7 +170,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
 
     try {
       await postLoginMutation.mutateAsync(loginResult.data);
-      setSignInMessage('로그인되었습니다.');
+      router.replace('/home');
     } catch {
       setSignInMessage('이메일 또는 비밀번호를 확인해주세요.');
     }
@@ -390,7 +390,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
               screen === 'signup-invite'
                 ? () => void handleAcceptInvitation()
                 : screen === 'signup-patient'
-                  ? () => setScreen(getNextScreen(screen, 'complete'))
+                  ? () => router.replace('/home')
                   : () => void handleSignUpNext()
             }
             disabled={postRegisterMutation.isPending || postAcceptInvitationMutation.isPending}
