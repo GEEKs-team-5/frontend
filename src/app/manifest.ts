@@ -8,7 +8,7 @@ const manifest = (): MetadataRoute.Manifest => ({
   scope: '/',
   display: 'standalone',
   background_color: '#ffffff',
-  theme_color: '#49A2D8',
+  theme_color: '#65BCEE',
   icons: [
     {
       src: '/icon.svg',
