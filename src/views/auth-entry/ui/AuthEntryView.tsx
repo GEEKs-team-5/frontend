@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 import {
   getSignupValidationMessage,
@@ -30,8 +31,13 @@ type ScreenType =
 type RoleType = '' | 'guardian' | 'patient';
 type GenderType = '' | 'female' | 'male';
 
-const AuthEntryView = () => {
-  const [screen, setScreen] = useState<ScreenType>('splash');
+interface AuthEntryViewProps {
+  initialScreen?: ScreenType;
+}
+
+const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
+  const router = useRouter();
+  const [screen, setScreen] = useState<ScreenType>(initialScreen);
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -52,11 +58,18 @@ const AuthEntryView = () => {
   const postCareInvitationMutation = usePostCareInvitation();
   const postAcceptInvitationMutation = usePostAcceptInvitation();
 
-  const handleOpenSignIn = () => setScreen(getNextScreen('start', 'open-signin'));
+  const handleOpenSignIn = () => router.push('/signin');
 
-  const handleOpenSignUp = () => setScreen(getNextScreen(screen, 'open-signup'));
+  const handleOpenSignUp = () => router.push('/signup');
 
-  const handleGoBack = () => setScreen(getNextScreen(screen, 'go-back'));
+  const handleGoBack = () => {
+    if (screen === 'signin' || screen === 'signup-email') {
+      router.push('/');
+      return;
+    }
+
+    setScreen(getNextScreen(screen, 'go-back'));
+  };
 
   const handleSignUpNext = async () => {
     setSignupMessage('');
