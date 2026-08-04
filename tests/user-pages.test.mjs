@@ -12,6 +12,16 @@ test('사용자 메인·리포트·설정 라우트를 제공한다', async () =
   assert.ok(true);
 });
 
+test('앱 헤더는 현재 날짜를 표시한다', async () => {
+  const source = await readFile(
+    new URL('../src/widgets/user-navigation/ui/UserAppHeader.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /new Intl\.DateTimeFormat\('ko-KR'/);
+  assert.doesNotMatch(source, /2026년 08월 04일/);
+});
+
 test('리포트 약 목록에서 상세 팝업을 제공한다', async () => {
   const source = await readFile(
     new URL('../src/views/user-report/ui/UserReportView.tsx', import.meta.url),
