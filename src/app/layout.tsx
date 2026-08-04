@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import type { Metadata } from 'next';
 
 import Providers from './providers';
+import PwaServiceWorker from './PwaServiceWorker';
 
 import './globals.css';
 
@@ -27,6 +28,7 @@ const RootLayout = ({
     <html lang="ko" className={`font-sans ${pretendard.variable}`}>
       <body>
         <Providers>{children}</Providers>
+        <PwaServiceWorker />
       </body>
     </html>
   );
