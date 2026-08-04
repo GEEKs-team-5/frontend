@@ -8,7 +8,7 @@ export interface MedicationResponseType {
 }
 
 export interface MedicationReqType {
-  daysOfWeek: string[];
+  daysOfWeek: number[];
   dosage: string;
   instructions?: string;
   name: string;

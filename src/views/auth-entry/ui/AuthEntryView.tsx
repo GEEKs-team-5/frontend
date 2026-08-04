@@ -168,7 +168,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
 
     try {
       await postAcceptInvitationMutation.mutateAsync(inviteCode.trim());
-      router.replace('/home');
+      router.replace('/caregiver');
     } catch {
       setSignupMessage('초대 코드를 확인해주세요.');
     }
@@ -185,8 +185,8 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
     }
 
     try {
-      await postLoginMutation.mutateAsync(loginResult.data);
-      router.replace('/home');
+      const { user } = await postLoginMutation.mutateAsync(loginResult.data);
+      router.replace(user.activeRole === 'CAREGIVER' ? '/caregiver' : '/home');
     } catch {
       setSignInMessage('이메일 또는 비밀번호를 확인해주세요.');
     }

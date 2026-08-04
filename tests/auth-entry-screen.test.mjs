@@ -22,13 +22,14 @@ test('인증 진입 화면 전환', () => {
   assert.equal(getNextScreen('signup-profile', 'register-patient'), 'signup-patient');
 });
 
-test('인증 완료 후 사용자 메인으로 이동', async () => {
+test('인증 완료 후 역할별 메인으로 이동', async () => {
   const source = await readFile(
     new URL('../src/views/auth-entry/ui/AuthEntryView.tsx', import.meta.url),
     'utf8',
   );
 
-  assert.equal((source.match(/router\.replace\('\/home'\)/g) ?? []).length, 3);
+  assert.match(source, /user\.activeRole === 'CAREGIVER' \? '\/caregiver' : '\/home'/);
+  assert.equal((source.match(/router\.replace\('\/home'\)/g) ?? []).length, 1);
 });
 
 test('회원가입 단계 전환 시 화면을 상단 기준선으로 되돌린다', async () => {

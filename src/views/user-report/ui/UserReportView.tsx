@@ -84,14 +84,26 @@ const UserReportView = () => {
                     %
                   </strong>
                 </span>
-                <Image src="/report-rate.svg" alt="" width={24} height={24} />
+                <Image
+                  className="size-6 shrink-0"
+                  src="/report-rate.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                />
               </div>
               <div className="flex justify-between px-4 py-4">
                 <span>
                   <p className="text-sm text-neutral-700">총 복용 횟수</p>
                   <strong className="text-primary-400 text-2xl">{monthlyScheduledCount}회</strong>
                 </span>
-                <Image src="/report-count.svg" alt="" width={24} height={24} />
+                <Image
+                  className="size-6 shrink-0"
+                  src="/report-count.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                />
               </div>
             </div>
             <div className="mt-4 rounded-xl bg-neutral-100 px-5 pt-5 pb-4">
