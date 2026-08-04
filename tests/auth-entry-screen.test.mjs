@@ -20,4 +20,5 @@ test('인증 진입 화면 전환', () => {
   assert.equal(getNextScreen('signup-role', 'select-patient'), 'signup-profile');
   assert.equal(getNextScreen('signup-profile', 'register-guardian'), 'signup-invite');
   assert.equal(getNextScreen('signup-profile', 'register-patient'), 'signup-patient');
+  assert.equal(getNextScreen('signup-patient', 'complete'), 'start');
 });

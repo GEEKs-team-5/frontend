@@ -390,12 +390,12 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
               screen === 'signup-invite'
                 ? () => void handleAcceptInvitation()
                 : screen === 'signup-patient'
-                  ? undefined
+                  ? () => setScreen(getNextScreen(screen, 'complete'))
                   : () => void handleSignUpNext()
             }
             disabled={postRegisterMutation.isPending || postAcceptInvitationMutation.isPending}
           >
-            {['signup-patient', 'signup-invite'].includes(screen) ? '회원가입' : '다음 >'}
+            {screen === 'signup-patient' ? '완료' : screen === 'signup-invite' ? '회원가입' : '다음 >'}
           </button>
         </section>
       </main>
