@@ -6,6 +6,7 @@ import {
   getMedications,
   patchMedication,
   postMedication,
+  postMedicationsBulk,
 } from '../api/medication';
 export const medicationQueryKeys = {
   list: (patientId?: string) => ['medications', 'list', patientId] as const,
@@ -21,6 +22,7 @@ export const useMedicationMutations = (patientId?: string) => {
   const refresh = () => client.invalidateQueries({ queryKey: medicationQueryKeys.list(patientId) });
   return {
     postMedication: useMutation({ mutationFn: postMedication, onSuccess: refresh }),
+    postMedicationsBulk: useMutation({ mutationFn: postMedicationsBulk, onSuccess: refresh }),
     patchMedication: useMutation({
       mutationFn: ({
         id,

@@ -10,7 +10,7 @@ const UserHomeView = () => {
   const { data: profile } = useGetUserProfile();
   const patientId = profile?.activeRole === 'PATIENT' ? profile.id : undefined;
   const { data: todayDoses, isLoading } = useGetTodayDoses(patientId);
-  const patchDoseTakenMutation = usePatchDoseTaken(patientId);
+  const patchDoseTakenMutation = usePatchDoseTaken();
   const nextDose = todayDoses?.items.find((dose) => dose.status === 'PENDING');
 
   return (

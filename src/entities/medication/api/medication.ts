@@ -24,10 +24,17 @@ export interface MedicationReqType {
   times: string[];
 }
 
+export interface MedicationBulkReqType {
+  medications: Omit<MedicationReqType, 'patientId'>[];
+  patientId: string;
+}
+
 export const getMedications = (patientId: string) =>
   get<MedicationResponseType[]>(`api/v1/patients/${patientId}/medications`);
 export const postMedication = (request: MedicationReqType) =>
   post<MedicationResponseType>('api/v1/medications', request);
+export const postMedicationsBulk = (request: MedicationBulkReqType) =>
+  post<MedicationResponseType[]>('api/v1/medications/bulk', request);
 export const patchMedication = (id: string, request: Partial<MedicationReqType>) =>
   patch<MedicationResponseType>(`api/v1/medications/${id}`, request);
 export const deleteMedication = (id: string) => del(`api/v1/medications/${id}`);

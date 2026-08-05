@@ -148,9 +148,10 @@ test('보호자 약 등록은 사진 촬영과 파일 업로드를 모두 지원
   assert.match(source, /파일 업로드/);
 });
 
-test('보호자 직접 등록에서 처방전 OCR 결과를 여러 약으로 확인하고 등록할 수 있다', async () => {
-  const [caregiver, ocrApi] = await Promise.all([
+test('보호자 직접 등록에서 처방전 OCR 결과를 여러 약으로 확인하고 일괄 등록할 수 있다', async () => {
+  const [caregiver, medicationApi, ocrApi] = await Promise.all([
     readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/entities/medication/api/medication.ts', import.meta.url), 'utf8'),
     readFile(new URL('../src/entities/prescription/api/ocr.ts', import.meta.url), 'utf8'),
   ]);
 
@@ -162,7 +163,8 @@ test('보호자 직접 등록에서 처방전 OCR 결과를 여러 약으로 확
   assert.match(caregiver, /사진 분석하기/);
   assert.doesNotMatch(caregiver, /DUR 제품 확인/);
   assert.match(caregiver, /선택한 .*개 등록하기/);
-  assert.match(caregiver, /postMedication\.mutateAsync/);
+  assert.match(caregiver, /postMedicationsBulk\.mutateAsync/);
+  assert.match(medicationApi, /api\/v1\/medications\/bulk/);
   assert.match(caregiver, /type="time"/);
   assert.match(caregiver, /new Set\(draft\.times\)\.size !== draft\.times\.length/);
 });
@@ -173,7 +175,7 @@ test('보호자 약 등록은 요일을 0부터 6까지의 정수 배열로 전�
     readFile(new URL('../src/entities/medication/api/medication.ts', import.meta.url), 'utf8'),
   ]);
 
-  assert.match(caregiver, /\?\?\s*\[\s*0, 1, 2, 3, 4, 5, 6,\s*\]/);
+  assert.match(caregiver, /0,\s*1,\s*2,\s*3,\s*4,\s*5,\s*6/);
   assert.match(medicationApi, /daysOfWeek: number\[\];/);
 });
 
@@ -241,6 +243,24 @@ test('보호자 약 수정은 기존 값을 채우고 PATCH 요청을 보낸다'
   );
   assert.match(source, /patchMedication\.mutate\(\s*\{\s*id: medicationId,/);
   assert.match(source, /setName\(editMedication\.name\)/);
+  assert.match(
+    source,
+    /new Set\(editMedication\.schedules\.map\(\(schedule\) => schedule\.time\)\)/,
+  );
+  assert.match(
+    source,
+    /new Set\(editMedication\.schedules\.map\(\(schedule\) => schedule\.dayOfWeek\)\)/,
+  );
+});
+
+test('복용 완료 후 해당 복용자의 모든 복약 통계를 갱신한다', async () => {
+  const source = await readFile(
+    new URL('../src/entities/dose/model/use-doses.ts', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /all: \(\) => \['doses'\] as const/);
+  assert.match(source, /invalidateQueries\(\{ queryKey: doseQueryKeys\.all\(\) \}\)/);
 });
 
 test('Figma 기준 보호자 내비게이션과 리포트 표현을 제공한다', async () => {

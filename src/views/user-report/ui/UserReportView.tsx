@@ -22,7 +22,7 @@ const UserReportView = () => {
   const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   const { data: todayDoses } = useGetTodayDoses(patientId);
   const { data: monthlyWeekdayAdherence } = useGetMonthlyWeekdayAdherence(patientId, currentMonth);
-  const patchDoseTakenMutation = usePatchDoseTaken(patientId);
+  const patchDoseTakenMutation = usePatchDoseTaken();
   const monthlyWeekdays = monthlyWeekdayAdherence?.weekdays ?? [];
   const monthlyScheduledCount = monthlyWeekdays.reduce(
     (total, weekday) => total + weekday.scheduledCount,

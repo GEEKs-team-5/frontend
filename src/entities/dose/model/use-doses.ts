@@ -10,6 +10,7 @@ import {
 } from '../api/dose';
 
 export const doseQueryKeys = {
+  all: () => ['doses'] as const,
   getTodayDoses: (patientId?: string) => ['doses', 'today', patientId] as const,
   getWeeklyAdherence: (patientId?: string) => ['doses', 'weekly-adherence', patientId] as const,
   getMonthlyWeekdayAdherence: (patientId?: string, month?: string) =>
@@ -37,12 +38,11 @@ export const useGetMonthlyWeekdayAdherence = (patientId?: string, month?: string
     enabled: Boolean(patientId && month),
   });
 
-export const usePatchDoseTaken = (patientId?: string) => {
+export const usePatchDoseTaken = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: patchDoseTaken,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: doseQueryKeys.getTodayDoses(patientId) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: doseQueryKeys.all() }),
   });
 };

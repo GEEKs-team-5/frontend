@@ -301,22 +301,26 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   );
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [isOcrAnalyzing, setIsOcrAnalyzing] = useState(false);
-  const [isOcrRegistering, setIsOcrRegistering] = useState(false);
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
   const { data: medications } = useGetMedications(patientId);
   const editMedication = medications?.find((medication) => medication.id === medicationId);
-  const { patchMedication, postMedication } = useMedicationMutations(patientId);
+  const { patchMedication, postMedication, postMedicationsBulk } =
+    useMedicationMutations(patientId);
 
   const saveMedication = (medicationName: string) => {
     const request = {
       name: medicationName,
       dosage,
       instructions,
-      times: [time],
-      daysOfWeek: editMedication?.schedules.map((schedule) => schedule.dayOfWeek) ?? [
-        0, 1, 2, 3, 4, 5, 6,
-      ],
+      times: editMedication
+        ? [...new Set(editMedication.schedules.map((schedule) => schedule.time))].map(
+            (scheduleTime, index) => (index === 0 ? time : scheduleTime),
+          )
+        : [time],
+      daysOfWeek: editMedication
+        ? [...new Set(editMedication.schedules.map((schedule) => schedule.dayOfWeek))]
+        : [0, 1, 2, 3, 4, 5, 6],
     };
 
     if (isEdit && medicationId) {
@@ -433,43 +437,23 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const registerOcrMedicationDrafts = async (drafts: OcrMedicationDraftType[]) => {
     if (!patientId) return;
 
-    setIsOcrRegistering(true);
-
-    let registeredCount = 0;
     try {
-      for (const draft of drafts) {
-        const durationDays = Number(draft.durationDays);
-
-        await postMedication.mutateAsync({
-          patientId,
+      await postMedicationsBulk.mutateAsync({
+        patientId,
+        medications: drafts.map((draft) => ({
           name: draft.name,
           dosage: draft.dosage,
           instructions: draft.instructions || undefined,
           times: draft.times,
           daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
           startDate: getOcrStartDate(),
-          endDate: getOcrStartDate(durationDays - 1),
-        });
-        registeredCount += 1;
-      }
+          endDate: getOcrStartDate(Number(draft.durationDays) - 1),
+        })),
+      });
 
       router.replace('/caregiver');
     } catch {
-      setOcrMedicationDrafts(
-        (currentDrafts) =>
-          currentDrafts?.map((draft) =>
-            drafts.slice(0, registeredCount).some((registered) => registered.id === draft.id)
-              ? { ...draft, isSelected: false }
-              : draft,
-          ) ?? null,
-      );
-      setOcrError(
-        registeredCount
-          ? `${registeredCount}개를 등록했습니다. 선택된 나머지 약을 다시 등록해주세요.`
-          : '약을 등록하지 못했습니다. 다시 시도해주세요.',
-      );
-    } finally {
-      setIsOcrRegistering(false);
+      setOcrError('약을 등록하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -634,10 +618,10 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
                 <button
                   className="bg-primary-400 text-neutral-0 h-11 w-full rounded-full font-semibold"
                   type="button"
-                  disabled={isOcrRegistering}
+                  disabled={postMedicationsBulk.isPending}
                   onClick={() => void handleOcrBatchRegistration()}
                 >
-                  {isOcrRegistering
+                  {postMedicationsBulk.isPending
                     ? '등록 중...'
                     : `선택한 ${ocrMedicationDrafts.filter((draft) => draft.isSelected).length}개 등록하기`}
                 </button>
