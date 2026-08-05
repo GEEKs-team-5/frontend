@@ -52,15 +52,15 @@ test('복약자 설정에서 토큰을 삭제하고 로그아웃할 수 있다',
   assert.match(source, /로그아웃/);
 });
 
-test('약 등록 전 병용금기를 검사하고 확인 모달을 제공한다', async () => {
+test('약 선택 화면에서만 DUR 검색을 제공한다', async () => {
   const source = await readFile(
     new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url),
     'utf8',
   );
 
-  assert.match(source, /getDrugSearch/);
-  assert.match(source, /getDrugInteractions/);
-  assert.match(source, /약물 상호작용 주의/);
+  assert.match(source, /getDrugSearch\(search\.trim\(\)\)/);
+  assert.doesNotMatch(source, /getDrugInteractions/);
+  assert.doesNotMatch(source, /약물 상호작용 주의/);
 });
 
 test('보호자 설정에서 초대 코드를 재입력해 연결할 수 있다', async () => {
@@ -135,7 +135,7 @@ test('보호자 약 등록은 KST 기준 시작일을 전송한다', async () =>
   assert.doesNotMatch(source, /startDate: new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
 });
 
-test('보호자 약 등록은 모바일 후면 카메라 촬영을 지원한다', async () => {
+test('보호자 약 등록은 사진 촬영과 파일 업로드를 모두 지원한다', async () => {
   const source = await readFile(
     new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url),
     'utf8',
@@ -145,9 +145,10 @@ test('보호자 약 등록은 모바일 후면 카메라 촬영을 지원한다'
     source,
     /type="file"\s+accept="image\/jpeg,image\/png,image\/webp"\s+capture="environment"/,
   );
+  assert.match(source, /파일 업로드/);
 });
 
-test('보호자 직접 등록에서 처방전 OCR 결과를 폼에 적용할 수 있다', async () => {
+test('보호자 직접 등록에서 처방전 OCR 결과를 여러 약으로 확인하고 등록할 수 있다', async () => {
   const [caregiver, ocrApi] = await Promise.all([
     readFile(new URL('../src/views/caregiver/ui/CaregiverView.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/entities/prescription/api/ocr.ts', import.meta.url), 'utf8'),
@@ -159,7 +160,11 @@ test('보호자 직접 등록에서 처방전 OCR 결과를 폼에 적용할 수
   );
   assert.match(caregiver, /analyzePrescriptionOcr/);
   assert.match(caregiver, /사진 분석하기/);
-  assert.match(caregiver, /OCR 결과 적용/);
+  assert.doesNotMatch(caregiver, /DUR 제품 확인/);
+  assert.match(caregiver, /선택한 .*개 등록하기/);
+  assert.match(caregiver, /postMedication\.mutateAsync/);
+  assert.match(caregiver, /type="time"/);
+  assert.match(caregiver, /new Set\(draft\.times\)\.size !== draft\.times\.length/);
 });
 
 test('보호자 약 등록은 요일을 0부터 6까지의 정수 배열로 전송한다', async () => {

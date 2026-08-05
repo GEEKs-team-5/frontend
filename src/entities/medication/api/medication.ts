@@ -16,6 +16,7 @@ export interface MedicationScheduleResponseType {
 export interface MedicationReqType {
   daysOfWeek: number[];
   dosage: string;
+  endDate?: string;
   instructions?: string;
   name: string;
   patientId: string;

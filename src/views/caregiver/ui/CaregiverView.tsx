@@ -12,14 +12,9 @@ import {
   useGetMonthlyWeekdayAdherence,
   useGetTodayDoses,
 } from '@/entities/dose';
-import {
-  type DrugInteractionItemResponseType,
-  type DrugType,
-  getDrugInteractions,
-  getDrugSearch,
-} from '@/entities/drug';
+import { type DrugType, getDrugSearch } from '@/entities/drug';
 import { useGetMedications, useMedicationMutations } from '@/entities/medication';
-import { analyzePrescriptionOcr, type OcrMedicationResponseType } from '@/entities/prescription';
+import { analyzePrescriptionOcr } from '@/entities/prescription';
 import { usePostAcceptInvitation } from '@/features/auth';
 import { COOKIE_KEYS, deleteCookie } from '@/shared';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
@@ -28,6 +23,16 @@ type CaregiverScreenType = 'edit' | 'list' | 'main' | 'new' | 'report' | 'settin
 
 interface CaregiverViewProps {
   screen: CaregiverScreenType;
+}
+
+interface OcrMedicationDraftType {
+  dosage: string;
+  durationDays: string;
+  id: string;
+  instructions: string;
+  isSelected: boolean;
+  name: string;
+  times: string[];
 }
 
 const CaregiverView = ({ screen }: CaregiverViewProps) => {
@@ -290,14 +295,13 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
   const [time, setTime] = useState('');
-  const [drugCandidates, setDrugCandidates] = useState<DrugType[] | null>(null);
-  const [interactionWarning, setInteractionWarning] = useState<InteractionWarningType | null>(null);
-  const [interactionError, setInteractionError] = useState<string | null>(null);
-  const [isCheckingInteraction, setIsCheckingInteraction] = useState(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
-  const [ocrMedications, setOcrMedications] = useState<OcrMedicationResponseType[] | null>(null);
+  const [ocrMedicationDrafts, setOcrMedicationDrafts] = useState<OcrMedicationDraftType[] | null>(
+    null,
+  );
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [isOcrAnalyzing, setIsOcrAnalyzing] = useState(false);
+  const [isOcrRegistering, setIsOcrRegistering] = useState(false);
   const { data: links } = useGetCareLinks();
   const patientId = links?.find((link) => link.status === 'ACTIVE')?.patientId;
   const { data: medications } = useGetMedications(patientId);
@@ -335,42 +339,10 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
     );
   };
 
-  const checkInteraction = async (drug: DrugType) => {
-    setDrugCandidates(null);
-    setIsCheckingInteraction(true);
-
-    try {
-      const interactions = await getDrugInteractions(drug.itemSeq);
-      const warning = interactions.items.find((interaction) =>
-        medications?.some(
-          (medication) =>
-            normalizeMedicationName(medication.name) ===
-            normalizeMedicationName(interaction.contraindicatedDrugName ?? ''),
-        ),
-      );
-      const medication = medications?.find(
-        (item) =>
-          normalizeMedicationName(item.name) ===
-          normalizeMedicationName(warning?.contraindicatedDrugName ?? ''),
-      );
-
-      if (warning && medication) {
-        setInteractionWarning({ drug, medicationName: medication.name, warning });
-        return;
-      }
-
-      saveMedication(drug.name);
-    } catch {
-      setInteractionError('약물 상호작용을 확인하지 못했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsCheckingInteraction(false);
-    }
-  };
-
   const handleOcrFileChange = (file?: File) => {
     setOcrFile(file ?? null);
     setOcrError(null);
-    setOcrMedications(null);
+    setOcrMedicationDrafts(null);
   };
 
   const handleOcrAnalysis = async () => {
@@ -389,17 +361,31 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
 
     try {
       const imageBase64 = await readFileAsDataUrl(ocrFile);
-      const { medications } = await analyzePrescriptionOcr({
+      const { medications: ocrMedications } = await analyzePrescriptionOcr({
         imageBase64,
         mimeType: ocrFile.type as 'image/jpeg' | 'image/png' | 'image/webp',
       });
 
-      if (!medications.length) {
+      if (!ocrMedications.length) {
         setOcrError('처방전에서 약 정보를 찾지 못했습니다.');
         return;
       }
 
-      setOcrMedications(medications);
+      setOcrMedicationDrafts(
+        ocrMedications.map((medication, index) => {
+          const frequencyPerDay = Math.max(1, medication.frequencyPerDay ?? 1);
+
+          return {
+            dosage: medication.dose ?? '',
+            durationDays: medication.durationDays ? String(medication.durationDays) : '',
+            id: `${medication.name}-${index}`,
+            instructions: medication.instructions ?? '',
+            isSelected: true,
+            name: medication.name,
+            times: Array.from({ length: frequencyPerDay }, () => ''),
+          };
+        }),
+      );
     } catch {
       setOcrError('사진을 분석하지 못했습니다. 다시 시도해주세요.');
     } finally {
@@ -407,37 +393,120 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
     }
   };
 
-  const applyOcrMedication = (medication: OcrMedicationResponseType) => {
-    setName(medication.name);
-    setDosage(medication.dose ?? '');
-    setInstructions(medication.instructions ?? '');
-    setOcrMedications(null);
+  const updateOcrMedicationDraft = (
+    draftId: string,
+    field: 'dosage' | 'durationDays' | 'instructions' | 'isSelected' | 'name',
+    value: string | boolean,
+  ) => {
+    setOcrMedicationDrafts(
+      (drafts) =>
+        drafts?.map((draft) =>
+          draft.id === draftId
+            ? {
+                ...draft,
+                [field]: value,
+              }
+            : draft,
+        ) ?? null,
+    );
+  };
+
+  const updateOcrMedicationTime = (draftId: string, timeIndex: number, value: string) => {
+    setOcrMedicationDrafts(
+      (drafts) =>
+        drafts?.map((draft) =>
+          draft.id === draftId
+            ? {
+                ...draft,
+                times: draft.times.map((time, index) => (index === timeIndex ? value : time)),
+              }
+            : draft,
+        ) ?? null,
+    );
+  };
+
+  const getOcrStartDate = (daysFromToday = 0) =>
+    new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(
+      new Date(Date.now() + daysFromToday * 24 * 60 * 60 * 1000),
+    );
+
+  const registerOcrMedicationDrafts = async (drafts: OcrMedicationDraftType[]) => {
+    if (!patientId) return;
+
+    setIsOcrRegistering(true);
+
+    let registeredCount = 0;
+    try {
+      for (const draft of drafts) {
+        const durationDays = Number(draft.durationDays);
+
+        await postMedication.mutateAsync({
+          patientId,
+          name: draft.name,
+          dosage: draft.dosage,
+          instructions: draft.instructions || undefined,
+          times: draft.times,
+          daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+          startDate: getOcrStartDate(),
+          endDate: getOcrStartDate(durationDays - 1),
+        });
+        registeredCount += 1;
+      }
+
+      router.replace('/caregiver');
+    } catch {
+      setOcrMedicationDrafts(
+        (currentDrafts) =>
+          currentDrafts?.map((draft) =>
+            drafts.slice(0, registeredCount).some((registered) => registered.id === draft.id)
+              ? { ...draft, isSelected: false }
+              : draft,
+          ) ?? null,
+      );
+      setOcrError(
+        registeredCount
+          ? `${registeredCount}개를 등록했습니다. 선택된 나머지 약을 다시 등록해주세요.`
+          : '약을 등록하지 못했습니다. 다시 시도해주세요.',
+      );
+    } finally {
+      setIsOcrRegistering(false);
+    }
+  };
+
+  const handleOcrBatchRegistration = async () => {
+    const selectedDrafts = ocrMedicationDrafts?.filter((draft) => draft.isSelected) ?? [];
+
+    if (!selectedDrafts.length) {
+      setOcrError('등록할 약을 하나 이상 선택해주세요.');
+      return;
+    }
+    if (selectedDrafts.some((draft) => new Set(draft.times).size !== draft.times.length)) {
+      setOcrError('한 약의 복용 시간은 서로 다르게 입력해주세요.');
+      return;
+    }
+    if (
+      selectedDrafts.some(
+        (draft) =>
+          !draft.name.trim() ||
+          !draft.dosage.trim() ||
+          !Number.isInteger(Number(draft.durationDays)) ||
+          Number(draft.durationDays) < 1 ||
+          draft.times.some((time) => !/^\d{2}:\d{2}$/.test(time)),
+      )
+    ) {
+      setOcrError('선택한 약의 이름, 1회 투여량, 기간과 복용 시간을 입력해주세요.');
+      return;
+    }
+
+    setOcrError(null);
+
+    await registerOcrMedicationDrafts(selectedDrafts);
   };
 
   const submit = async () => {
     if (!patientId || !name || !dosage || !/^\d{2}:\d{2}$/.test(time)) return;
-    setInteractionError(null);
 
-    if (isEdit && medicationId) {
-      saveMedication(name);
-      return;
-    }
-
-    setIsCheckingInteraction(true);
-
-    try {
-      const { items } = await getDrugSearch(name);
-      if (!items.length) {
-        setInteractionError('약 정보를 찾을 수 없습니다. 정확한 제품명을 입력해주세요.');
-        return;
-      }
-
-      setDrugCandidates(items);
-    } catch {
-      setInteractionError('약 정보를 찾을 수 없습니다. 다시 시도해주세요.');
-    } finally {
-      setIsCheckingInteraction(false);
-    }
+    saveMedication(name);
   };
 
   useEffect(() => {
@@ -453,16 +522,30 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
       <div className="mx-auto max-w-[480px] px-5 pt-[72px]">
         {!isEdit && (
           <>
-            <label className="flex h-[178px] items-center justify-center border border-dashed border-neutral-400 text-neutral-600">
-              {ocrFile ? ocrFile.name : '⇧ 사진 업로드'}
-              <input
-                className="sr-only"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="environment"
-                onChange={(event) => handleOcrFileChange(event.target.files?.[0])}
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex h-12 items-center justify-center rounded-md border border-dashed border-neutral-400 text-neutral-600">
+                사진 촬영
+                <input
+                  className="sr-only"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  onChange={(event) => handleOcrFileChange(event.target.files?.[0])}
+                />
+              </label>
+              <label className="flex h-12 items-center justify-center rounded-md border border-dashed border-neutral-400 text-neutral-600">
+                파일 업로드
+                <input
+                  className="sr-only"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => handleOcrFileChange(event.target.files?.[0])}
+                />
+              </label>
+            </div>
+            {ocrFile && (
+              <p className="mt-3 text-sm text-neutral-600">선택한 파일: {ocrFile.name}</p>
+            )}
             {ocrFile && (
               <button
                 className="bg-primary-400 text-neutral-0 mt-3 h-10 w-full rounded-full font-semibold"
@@ -474,25 +557,90 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
               </button>
             )}
             {ocrError && <p className="text-system-error mt-3 text-sm">{ocrError}</p>}
-            {ocrMedications && (
+            {ocrMedicationDrafts && (
               <section className="mt-3 space-y-2" aria-label="OCR 인식 결과">
-                <p className="text-sm text-neutral-600">인식한 약을 선택해 내용을 적용해주세요.</p>
-                {ocrMedications.map((medication, index) => (
-                  <button
-                    className="flex w-full items-center justify-between rounded-md bg-neutral-100 px-4 py-3 text-left"
-                    type="button"
-                    key={`${medication.name}-${index}`}
-                    onClick={() => applyOcrMedication(medication)}
-                  >
-                    <span>
-                      <strong className="block">{medication.name}</strong>
-                      <small className="text-neutral-600">
-                        {medication.dose ?? '용량 확인 필요'}
-                      </small>
-                    </span>
-                    <span className="text-primary-400 text-sm font-semibold">OCR 결과 적용</span>
-                  </button>
+                <p className="text-sm text-neutral-600">
+                  등록할 약과 약별 복용 시간을 확인해주세요.
+                </p>
+                {ocrMedicationDrafts.map((draft) => (
+                  <article className="rounded-md bg-neutral-100 p-4" key={draft.id}>
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={draft.isSelected}
+                        onChange={(event) =>
+                          updateOcrMedicationDraft(draft.id, 'isSelected', event.target.checked)
+                        }
+                      />
+                      등록하기
+                    </label>
+                    <div className="mt-3 space-y-2">
+                      <label className="block text-sm text-neutral-600">
+                        약 이름
+                        <input
+                          className="bg-neutral-0 mt-1 h-10 w-full rounded-md px-3 text-neutral-800"
+                          value={draft.name}
+                          onChange={(event) =>
+                            updateOcrMedicationDraft(draft.id, 'name', event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="block text-sm text-neutral-600">
+                        1회 투여량
+                        <input
+                          className="bg-neutral-0 mt-1 h-10 w-full rounded-md px-3 text-neutral-800"
+                          value={draft.dosage}
+                          placeholder="1회 투여량"
+                          onChange={(event) =>
+                            updateOcrMedicationDraft(draft.id, 'dosage', event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="block text-sm text-neutral-600">
+                        투여 기간(일)
+                        <input
+                          className="bg-neutral-0 mt-1 h-10 w-full rounded-md px-3 text-neutral-800"
+                          type="number"
+                          min="1"
+                          value={draft.durationDays}
+                          placeholder="투여 기간(일)"
+                          onChange={(event) =>
+                            updateOcrMedicationDraft(draft.id, 'durationDays', event.target.value)
+                          }
+                        />
+                      </label>
+                      <div>
+                        <p className="text-sm text-neutral-600">
+                          복용 시간 · 하루 {draft.times.length}회
+                        </p>
+                        <div className="mt-1 space-y-2">
+                          {draft.times.map((time, index) => (
+                            <input
+                              className="bg-neutral-0 h-10 w-full rounded-md px-3 text-neutral-800"
+                              type="time"
+                              value={time}
+                              aria-label={`${draft.name} ${index + 1}회차 복용 시간`}
+                              key={index}
+                              onChange={(event) =>
+                                updateOcrMedicationTime(draft.id, index, event.target.value)
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
                 ))}
+                <button
+                  className="bg-primary-400 text-neutral-0 h-11 w-full rounded-full font-semibold"
+                  type="button"
+                  disabled={isOcrRegistering}
+                  onClick={() => void handleOcrBatchRegistration()}
+                >
+                  {isOcrRegistering
+                    ? '등록 중...'
+                    : `선택한 ${ocrMedicationDrafts.filter((draft) => draft.isSelected).length}개 등록하기`}
+                </button>
               </section>
             )}
           </>
@@ -523,46 +671,18 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
             placeholder="약 복용 시간을 적어주세요 (ex: 09:30)"
           />
         </div>
-        {interactionError && <p className="text-system-error mt-3 text-sm">{interactionError}</p>}
         <button
           className="bg-primary-400 text-neutral-0 mt-[180px] h-12 w-full rounded-full font-semibold shadow-[0_6px_0_#1c8dd3]"
           type="button"
           onClick={submit}
-          disabled={isCheckingInteraction}
         >
-          {isCheckingInteraction ? '검사 중...' : isEdit ? '수정하기' : '등록하기'}
+          {isEdit ? '수정하기' : '등록하기'}
         </button>
       </div>
       <UserBottomNav />
-      {drugCandidates && (
-        <DrugSelectionDialog
-          drugs={drugCandidates}
-          onClose={() => setDrugCandidates(null)}
-          onSelect={(drug) => void checkInteraction(drug)}
-        />
-      )}
-      {interactionWarning && (
-        <DrugInteractionWarningDialog
-          warning={interactionWarning}
-          onCancel={() => setInteractionWarning(null)}
-          onConfirm={() => {
-            saveMedication(interactionWarning.drug.name);
-            setInteractionWarning(null);
-          }}
-        />
-      )}
     </main>
   );
 };
-
-interface InteractionWarningType {
-  drug: DrugType;
-  medicationName: string;
-  warning: DrugInteractionItemResponseType;
-}
-
-const normalizeMedicationName = (medicationName: string) =>
-  medicationName.replaceAll(' ', '').toLocaleLowerCase('ko-KR');
 
 const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -571,88 +691,6 @@ const readFileAsDataUrl = (file: File) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-
-interface DrugSelectionDialogProps {
-  drugs: DrugType[];
-  onClose: () => void;
-  onSelect: (drug: DrugType) => void;
-}
-
-const DrugSelectionDialog = ({ drugs, onClose, onSelect }: DrugSelectionDialogProps) => (
-  <div className="bg-neutral-1000/45 fixed inset-0 z-20 px-5" role="dialog" aria-modal="true">
-    <section className="bg-neutral-0 mx-auto mt-[120px] max-w-[440px] rounded-xl p-6">
-      <h2 className="text-xl font-semibold">등록할 약을 선택해주세요</h2>
-      <div className="mt-5 max-h-[360px] space-y-2 overflow-y-auto">
-        {drugs.map((drug) => (
-          <button
-            className="w-full rounded-md bg-neutral-100 px-4 py-3 text-left"
-            type="button"
-            key={drug.itemSeq}
-            onClick={() => onSelect(drug)}
-          >
-            <strong className="block">{drug.name}</strong>
-            {drug.manufacturer && (
-              <span className="mt-1 block text-sm text-neutral-600">{drug.manufacturer}</span>
-            )}
-          </button>
-        ))}
-      </div>
-      <button className="mt-3 h-10 w-full text-neutral-500" type="button" onClick={onClose}>
-        취소
-      </button>
-    </section>
-  </div>
-);
-
-interface DrugInteractionWarningDialogProps {
-  onCancel: () => void;
-  onConfirm: () => void;
-  warning: InteractionWarningType;
-}
-
-const DrugInteractionWarningDialog = ({
-  onCancel,
-  onConfirm,
-  warning,
-}: DrugInteractionWarningDialogProps) => (
-  <div className="bg-neutral-1000/45 fixed inset-0 z-30 px-5" role="dialog" aria-modal="true">
-    <section className="bg-neutral-0 mx-auto mt-[160px] max-w-[440px] rounded-xl p-6 text-center">
-      <div className="flex flex-col items-center gap-12">
-        <div className="flex flex-col items-center gap-4">
-          <Image src="/drug-interaction-warning.svg" alt="경고" width={48} height={48} />
-          <div className="space-y-1.5">
-            <h2 className="text-2xl font-semibold">약물 상호작용 주의</h2>
-            <p className="text-base leading-[1.2] text-neutral-600">
-              <strong>&apos;{warning.drug.name}&apos;</strong>은(는) 현재 복용 중인{' '}
-              <strong>&apos;{warning.medicationName}&apos;</strong>과(와) 함께 드실 경우{' '}
-              {warning.warning.reason
-                ? `${warning.warning.reason}을 유발할 수 있습니다.`
-                : '주의가 필요할 수 있습니다.'}
-              <br />
-              정말 등록하시겠습니까?
-            </p>
-          </div>
-        </div>
-        <div className="w-full">
-          <button
-            className="text-neutral-0 w-full rounded-full bg-[#eb5757] px-5 py-4 font-semibold"
-            type="button"
-            onClick={onConfirm}
-          >
-            확인
-          </button>
-          <button
-            className="w-full rounded-xl px-5 py-4 font-semibold text-neutral-600"
-            type="button"
-            onClick={onCancel}
-          >
-            취소
-          </button>
-        </div>
-      </div>
-    </section>
-  </div>
-);
 
 const CaregiverSettings = () => {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
