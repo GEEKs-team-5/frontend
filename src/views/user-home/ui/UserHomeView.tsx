@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 
-import { useGetTodayDoses, usePatchDoseTaken } from '@/entities/dose';
+import { DOSE_STATUS_META, useGetTodayDoses, usePatchDoseTaken } from '@/entities/dose';
 import { useGetUserProfile } from '@/entities/user';
 import { UserAppHeader, UserBottomNav } from '@/widgets/user-navigation';
 
@@ -35,7 +35,7 @@ const UserHomeView = () => {
             </p>
           )}
           {todayDoses?.items.map((dose) => {
-            const isPending = dose.status === 'PENDING';
+            const statusMeta = DOSE_STATUS_META[dose.status];
 
             return (
               <article
@@ -66,12 +66,12 @@ const UserHomeView = () => {
                   </div>
                 </div>
                 <button
-                  className={`mt-[17px] h-10 w-full rounded-full text-base font-semibold ${isPending ? 'bg-primary-400 text-neutral-0 shadow-[0_6px_0_#1c8dd3]' : 'text-neutral-0 bg-neutral-400'}`}
+                  className={`mt-[17px] h-10 w-full rounded-full text-base font-semibold ${statusMeta.canMarkTaken ? 'bg-primary-400 text-neutral-0 shadow-[0_6px_0_#1c8dd3]' : 'text-neutral-0 bg-neutral-400'}`}
                   type="button"
-                  disabled={!isPending || patchDoseTakenMutation.isPending}
+                  disabled={!statusMeta.canMarkTaken || patchDoseTakenMutation.isPending}
                   onClick={() => patchDoseTakenMutation.mutate(dose.id)}
                 >
-                  {isPending ? '복용했어요!' : '복용 완료'}
+                  {statusMeta.label}
                 </button>
               </article>
             );

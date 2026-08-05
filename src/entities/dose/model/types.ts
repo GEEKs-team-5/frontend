@@ -1,5 +1,12 @@
 export type DoseStatusType = 'PENDING' | 'TAKEN' | 'MISSED' | 'SKIPPED';
 
+export const DOSE_STATUS_META: Record<DoseStatusType, { canMarkTaken: boolean; label: string }> = {
+  PENDING: { canMarkTaken: true, label: '복용했어요!' },
+  TAKEN: { canMarkTaken: false, label: '복용 완료' },
+  MISSED: { canMarkTaken: true, label: '복용 미완료' },
+  SKIPPED: { canMarkTaken: false, label: '복용 건너뜀' },
+};
+
 export interface MedicationBriefResponseType {
   dosage: string;
   id: string;

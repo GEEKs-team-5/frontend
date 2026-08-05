@@ -26,6 +26,7 @@ interface CaregiverViewProps {
 }
 
 interface OcrMedicationDraftType {
+  confirmedTimes: boolean[];
   dosage: string;
   durationDays: string;
   id: string;
@@ -386,6 +387,7 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
             instructions: medication.instructions ?? '',
             isSelected: true,
             name: medication.name,
+            confirmedTimes: Array.from({ length: frequencyPerDay }, () => false),
             times: Array.from({ length: frequencyPerDay }, () => ''),
           };
         }),
@@ -422,7 +424,30 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
           draft.id === draftId
             ? {
                 ...draft,
+                confirmedTimes: draft.confirmedTimes.map((confirmed, index) =>
+                  index === timeIndex ? false : confirmed,
+                ),
                 times: draft.times.map((time, index) => (index === timeIndex ? value : time)),
+              }
+            : draft,
+        ) ?? null,
+    );
+  };
+
+  const updateOcrMedicationTimeConfirmation = (
+    draftId: string,
+    timeIndex: number,
+    confirmed: boolean,
+  ) => {
+    setOcrMedicationDrafts(
+      (drafts) =>
+        drafts?.map((draft) =>
+          draft.id === draftId
+            ? {
+                ...draft,
+                confirmedTimes: draft.confirmedTimes.map((value, index) =>
+                  index === timeIndex ? confirmed : value,
+                ),
               }
             : draft,
         ) ?? null,
@@ -479,6 +504,10 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
       )
     ) {
       setOcrError('선택한 약의 이름, 1회 투여량, 기간과 복용 시간을 입력해주세요.');
+      return;
+    }
+    if (selectedDrafts.some((draft) => draft.confirmedTimes.some((confirmed) => !confirmed))) {
+      setOcrError('각 복용 시간을 확인해주세요.');
       return;
     }
 
@@ -599,16 +628,31 @@ const MedicationForm = ({ isEdit }: { isEdit: boolean }) => {
                         </p>
                         <div className="mt-1 space-y-2">
                           {draft.times.map((time, index) => (
-                            <input
-                              className="bg-neutral-0 h-10 w-full rounded-md px-3 text-neutral-800"
-                              type="time"
-                              value={time}
-                              aria-label={`${draft.name} ${index + 1}회차 복용 시간`}
-                              key={index}
-                              onChange={(event) =>
-                                updateOcrMedicationTime(draft.id, index, event.target.value)
-                              }
-                            />
+                            <div className="flex items-center gap-3" key={index}>
+                              <input
+                                className="bg-neutral-0 h-10 min-w-0 flex-1 rounded-md px-3 text-neutral-800"
+                                type="time"
+                                value={time}
+                                aria-label={`${draft.name} ${index + 1}회차 복용 시간`}
+                                onChange={(event) =>
+                                  updateOcrMedicationTime(draft.id, index, event.target.value)
+                                }
+                              />
+                              <label className="flex shrink-0 items-center gap-1 text-sm text-neutral-700">
+                                <input
+                                  type="checkbox"
+                                  checked={draft.confirmedTimes[index]}
+                                  onChange={(event) =>
+                                    updateOcrMedicationTimeConfirmation(
+                                      draft.id,
+                                      index,
+                                      event.target.checked,
+                                    )
+                                  }
+                                />
+                                확인
+                              </label>
+                            </div>
                           ))}
                         </div>
                       </div>

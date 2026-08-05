@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 import {
+  DOSE_STATUS_META,
   type TodayDoseItemResponseType,
   useGetMonthlyWeekdayAdherence,
   useGetTodayDoses,
@@ -136,6 +137,7 @@ const UserReportView = () => {
       {selectedDose && (
         <MedicationDetailDialog
           dose={selectedDose}
+          isMarkingTaken={patchDoseTakenMutation.isPending}
           onClose={() => setSelectedDose(null)}
           onTaken={() =>
             patchDoseTakenMutation.mutate(selectedDose.id, {
@@ -182,50 +184,61 @@ const ReportMedicationSection = ({ doses, title, onOpen }: ReportMedicationSecti
 
 interface MedicationDetailDialogProps {
   dose: TodayDoseItemResponseType;
+  isMarkingTaken: boolean;
   onClose: () => void;
   onTaken: () => void;
 }
 
-const MedicationDetailDialog = ({ dose, onClose, onTaken }: MedicationDetailDialogProps) => (
-  <div
-    className="bg-neutral-1000/45 fixed inset-0 z-20 px-5"
-    role="dialog"
-    aria-modal="true"
-    aria-label="약 상세"
-  >
-    <section className="bg-neutral-0 mx-auto mt-[127px] max-w-[440px] rounded-xl p-6">
-      <div className="relative aspect-square overflow-hidden rounded-md border border-neutral-300">
-        <Image
-          className="object-cover"
-          src="/medication-placeholder.png"
-          alt="약 이미지"
-          fill
-          sizes="305px"
-        />
-      </div>
-      <div className="mt-4">
-        <h2 className="text-neutral-1000 text-xl font-semibold">{dose.medication.name}</h2>
-        <p className="text-primary-400 mt-0.5 text-sm font-semibold">{dose.medication.dosage}</p>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          {dose.medication.instructions ?? '주의사항이 없습니다.'}
-        </p>
-      </div>
-      <button
-        className="bg-primary-400 text-neutral-0 mt-9 h-10 w-full rounded-full text-base font-semibold shadow-[0_6px_0_#1c8dd3]"
-        type="button"
-        onClick={onTaken}
-      >
-        복용했어요!
-      </button>
-      <button
-        className="mt-3 h-10 w-full text-base font-semibold text-neutral-500"
-        type="button"
-        onClick={onClose}
-      >
-        취소
-      </button>
-    </section>
-  </div>
-);
+const MedicationDetailDialog = ({
+  dose,
+  isMarkingTaken,
+  onClose,
+  onTaken,
+}: MedicationDetailDialogProps) => {
+  const statusMeta = DOSE_STATUS_META[dose.status];
+
+  return (
+    <div
+      className="bg-neutral-1000/45 fixed inset-0 z-20 px-5"
+      role="dialog"
+      aria-modal="true"
+      aria-label="약 상세"
+    >
+      <section className="bg-neutral-0 mx-auto mt-[127px] max-w-[440px] rounded-xl p-6">
+        <div className="relative aspect-square overflow-hidden rounded-md border border-neutral-300">
+          <Image
+            className="object-cover"
+            src="/medication-placeholder.png"
+            alt="약 이미지"
+            fill
+            sizes="305px"
+          />
+        </div>
+        <div className="mt-4">
+          <h2 className="text-neutral-1000 text-xl font-semibold">{dose.medication.name}</h2>
+          <p className="text-primary-400 mt-0.5 text-sm font-semibold">{dose.medication.dosage}</p>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
+            {dose.medication.instructions ?? '주의사항이 없습니다.'}
+          </p>
+        </div>
+        <button
+          className={`mt-9 h-10 w-full rounded-full text-base font-semibold ${statusMeta.canMarkTaken ? 'bg-primary-400 text-neutral-0 shadow-[0_6px_0_#1c8dd3]' : 'text-neutral-0 bg-neutral-400'}`}
+          type="button"
+          disabled={!statusMeta.canMarkTaken || isMarkingTaken}
+          onClick={onTaken}
+        >
+          {statusMeta.label}
+        </button>
+        <button
+          className="mt-3 h-10 w-full text-base font-semibold text-neutral-500"
+          type="button"
+          onClick={onClose}
+        >
+          취소
+        </button>
+      </section>
+    </div>
+  );
+};
 
 export default UserReportView;

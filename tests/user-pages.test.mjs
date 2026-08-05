@@ -166,7 +166,22 @@ test('보호자 직접 등록에서 처방전 OCR 결과를 여러 약으로 확
   assert.match(caregiver, /postMedicationsBulk\.mutateAsync/);
   assert.match(medicationApi, /api\/v1\/medications\/bulk/);
   assert.match(caregiver, /type="time"/);
+  assert.match(caregiver, /confirmedTimes: Array\.from/);
+  assert.match(caregiver, /각 복용 시간을 확인해주세요\./);
   assert.match(caregiver, /new Set\(draft\.times\)\.size !== draft\.times\.length/);
+});
+
+test('복약 상태별 문구와 늦은 복용 처리를 구분한다', async () => {
+  const [doseTypes, home, report] = await Promise.all([
+    readFile(new URL('../src/entities/dose/model/types.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/views/user-home/ui/UserHomeView.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/views/user-report/ui/UserReportView.tsx', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(doseTypes, /MISSED: \{ canMarkTaken: true, label: '복용 미완료' \}/);
+  assert.match(doseTypes, /SKIPPED: \{ canMarkTaken: false, label: '복용 건너뜀' \}/);
+  assert.match(home, /const statusMeta = DOSE_STATUS_META\[dose\.status\]/);
+  assert.match(report, /const statusMeta = DOSE_STATUS_META\[dose\.status\]/);
 });
 
 test('보호자 약 등록은 요일을 0부터 6까지의 정수 배열로 전송한다', async () => {
