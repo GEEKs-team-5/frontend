@@ -40,3 +40,14 @@ test('회원가입 단계 전환 시 화면을 상단 기준선으로 되돌린�
 
   assert.match(source, /window\.scrollTo\(0, 0\)/);
 });
+
+test('회원가입의 비밀번호와 확인 입력은 각각 표시를 전환할 수 있다', async () => {
+  const source = await readFile(
+    new URL('../src/views/auth-entry/ui/AuthEntryView.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /isSignupPasswordVisible/);
+  assert.match(source, /isSignupPasswordConfirmationVisible/);
+  assert.equal((source.match(/src="\/auth-eye\.svg"/g) ?? []).length, 3);
+});

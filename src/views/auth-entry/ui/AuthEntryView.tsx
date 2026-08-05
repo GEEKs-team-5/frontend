@@ -38,7 +38,10 @@ interface AuthEntryViewProps {
 const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
   const router = useRouter();
   const [screen, setScreen] = useState<ScreenType>(initialScreen);
-  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+  const [isSignupPasswordVisible, setIsSignupPasswordVisible] = useState<boolean>(false);
+  const [isSignupPasswordConfirmationVisible, setIsSignupPasswordConfirmationVisible] =
+    useState<boolean>(false);
+  const [isSignInPasswordVisible, setIsSignInPasswordVisible] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [passwordConfirmation, setPasswordConfirmation] = useState<string>('');
@@ -192,7 +195,14 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
     }
   };
 
-  const handleTogglePasswordVisibility = () => setIsPasswordVisible((visible) => !visible);
+  const handleToggleSignupPasswordVisibility = () =>
+    setIsSignupPasswordVisible((visible) => !visible);
+
+  const handleToggleSignupPasswordConfirmationVisibility = () =>
+    setIsSignupPasswordConfirmationVisible((visible) => !visible);
+
+  const handleToggleSignInPasswordVisibility = () =>
+    setIsSignInPasswordVisible((visible) => !visible);
 
   const handleSelectRole = (selectedRole: Exclude<RoleType, ''>) => {
     setRole(selectedRole);
@@ -293,18 +303,32 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
             )}
             {screen === 'signup-password' && (
               <>
-                <input
-                  className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 px-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
-                  type={isPasswordVisible ? 'text' : 'password'}
-                  value={password}
-                  placeholder="비밀번호를 입력해주세요."
-                  aria-label="회원가입 비밀번호"
-                  onChange={(event) => setPassword(event.target.value)}
-                />
                 <div className="relative">
                   <input
                     className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 py-0 pr-12 pl-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
-                    type={isPasswordVisible ? 'text' : 'password'}
+                    type={isSignupPasswordVisible ? 'text' : 'password'}
+                    value={password}
+                    placeholder="비밀번호를 입력해주세요."
+                    aria-label="회원가입 비밀번호"
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center"
+                    type="button"
+                    aria-label={
+                      isSignupPasswordVisible
+                        ? '회원가입 비밀번호 숨기기'
+                        : '회원가입 비밀번호 보기'
+                    }
+                    onClick={handleToggleSignupPasswordVisibility}
+                  >
+                    <Image src="/auth-eye.svg" alt="" width={17} height={12} />
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 py-0 pr-12 pl-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
+                    type={isSignupPasswordConfirmationVisible ? 'text' : 'password'}
                     value={passwordConfirmation}
                     placeholder="비밀번호를 한번 더 입력해주세요."
                     aria-label="비밀번호 확인"
@@ -313,8 +337,12 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
                   <button
                     className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center"
                     type="button"
-                    aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'}
-                    onClick={handleTogglePasswordVisibility}
+                    aria-label={
+                      isSignupPasswordConfirmationVisible
+                        ? '비밀번호 확인 숨기기'
+                        : '비밀번호 확인 보기'
+                    }
+                    onClick={handleToggleSignupPasswordConfirmationVisibility}
                   >
                     <Image src="/auth-eye.svg" alt="" width={17} height={12} />
                   </button>
@@ -457,7 +485,7 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
           <div className="relative">
             <input
               className="focus:ring-primary-300 h-12 w-full rounded-md bg-neutral-100 py-0 pr-12 pl-4 text-base text-neutral-800 outline-none placeholder:text-neutral-500 focus:ring-1"
-              type={isPasswordVisible ? 'text' : 'password'}
+              type={isSignInPasswordVisible ? 'text' : 'password'}
               value={signInPassword}
               placeholder="비밀번호를 입력해주세요."
               aria-label="비밀번호"
@@ -466,8 +494,10 @@ const AuthEntryView = ({ initialScreen = 'splash' }: AuthEntryViewProps) => {
             <button
               className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center"
               type="button"
-              aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'}
-              onClick={handleTogglePasswordVisibility}
+              aria-label={
+                isSignInPasswordVisible ? '로그인 비밀번호 숨기기' : '로그인 비밀번호 보기'
+              }
+              onClick={handleToggleSignInPasswordVisibility}
             >
               <Image src="/auth-eye.svg" alt="" width={17} height={12} />
             </button>
